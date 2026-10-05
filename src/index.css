@@ -1,5 +1,28 @@
+:root {
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  color: #f1eff7;
+  background: #090910;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  font-optical-sizing: auto;
+}
+
 * {
   box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: #090910;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
   margin: 0;
   padding: 0;
 }
@@ -10,4 +33,18 @@ body, html {
   background-color: #0d0f17;
   overflow-x: hidden;
   font-family: system-ui, -apple-system, sans-serif;
+}
+button {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #c9a8ec;
+  outline-offset: 3px;
+}
+
+::selection {
+  color: #fff;
+  background: #71518e;
 }
