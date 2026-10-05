@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import './App.css'
+import RoomOne from './RoomOne'
 
 type Choice = {
   text: string
