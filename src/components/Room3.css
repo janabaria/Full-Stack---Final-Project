@@ -1,0 +1,402 @@
+/* Main full-screen page container */
+.room3-page-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #090a0f;
+  padding: 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Responsive Game Canvas - Scale without cropping */
+.room3-game-canvas {
+  position: relative;
+  width: 100%;
+  max-width: 1300px;
+  max-height: 90vh; /* يمنع انقصاص الصورة رأسياً */
+  aspect-ratio: 16 / 9;
+  background-image: url('../images/ROOM3.png');
+  background-size: 100% 100%; /* تجعل الصورة تتمدد وتصغر بنفس أبعاد الحاوية دون أي قص */
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 12px;
+  border: 1px solid rgba(112, 0, 255, 0.3);
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.9), 0 0 15px rgba(112, 0, 255, 0.2);
+}
+
+/* Shared interactive hotspot buttons styling */
+.hotspot-btn {
+  position: absolute;
+  background: transparent;
+  border: 2px dashed transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hotspot-btn:hover {
+  border-color: #a855f7;
+  background: rgba(168, 85, 247, 0.1);
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+}
+
+/* Hotspot positions and sizing - using percentages for perfect scaling */
+.hotspot-computer {
+  left: 2%;
+  top: 38%;
+  width: 28%;
+  height: 42%;
+}
+
+.hotspot-safe {
+  left: 42%;
+  top: 40%;
+  width: 16%;
+  height: 35%;
+}
+
+.hotspot-door {
+  left: 72%;
+  top: 18%;
+  width: 18%;
+  height: 62%;
+}
+
+/* Modal dialog overlay */
+.room3-modal-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(26, 22, 37, 0.95);
+  color: #ffffff;
+  padding: 28px;
+  border-radius: 16px;
+  border: 1px solid #7000ff;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
+  text-align: center;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+
+.room3-modal-overlay h3 {
+  margin-bottom: 16px;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.room3-modal-close-btn {
+  padding: 10px 20px;
+  cursor: pointer;
+  background-color: #7000ff;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.room3-modal-close-btn:hover {
+  background-color: #8b24ff;
+}
+
+.room3-modal-overlay p {
+  font-size: 0.95rem;
+  color: #d1d5db;
+  margin-bottom: 15px;
+  line-height: 1.4;
+}
+
+/* Digital Keypad Styling */
+/* حاوية لوحة الأرقام لتتمركز بشكل مربع وأنيق */
+.keypad-container {
+  max-width: 280px; /* تحديد عرض لوحة الأرقام حتى لا تتمدد مع عرض النافذة */
+  margin: 0 auto 15px auto;
+}
+
+.keypad-display {
+  background-color: #090a0f;
+  border: 1px solid #a855f7;
+  color: #22c55e;
+  font-family: monospace;
+  font-size: 1.8rem;
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  letter-spacing: 6px;
+  text-align: center;
+}
+
+.keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.keypad-btn {
+  background: #2a1b4e;
+  color: #fff;
+  border: 1px solid #7000ff;
+  padding: 12px 0; /* جعل الأزرار أقرب للشكل المربع */
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.keypad-btn:hover {
+  background: #7000ff;
+  box-shadow: 0 0 10px rgba(112, 0, 255, 0.5);
+}
+
+.keypad-btn-clear {
+  background: #881337;
+  border-color: #f43f5e;
+}
+
+.keypad-btn-clear:hover {
+  background: #f43f5e;
+}
+
+/* Close & Action Buttons */
+.room3-modal-close-btn {
+  padding: 8px 18px;
+  cursor: pointer;
+  background-color: #374151;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  margin-top: 10px;
+  transition: background-color 0.2s;
+}
+
+.room3-modal-close-btn:hover {
+  background-color: #4b5563;
+}
+
+
+/* Main full-screen page container */
+.room3-page-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #090a0f;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Responsive Game Canvas */
+.room3-game-canvas {
+  position: relative;
+  width: 96vw;
+  height: 96vh;
+  max-width: 1920px;
+  aspect-ratio: 16 / 9;
+  background-image: url('../images/ROOM3.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 12px;
+  border: 1px solid rgba(112, 0, 255, 0.4);
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.9), 0 0 20px rgba(112, 0, 255, 0.25);
+  transition: all 0.5s ease;
+}
+
+/* Alarm State Overlay Effect */
+.room3-game-canvas.alarm-active {
+  border-color: #ef4444;
+  box-shadow: 0 0 50px rgba(239, 68, 68, 0.8), inset 0 0 40px rgba(239, 68, 68, 0.5);
+  animation: pulse-alarm 1s infinite alternate;
+}
+
+@keyframes pulse-alarm {
+  from {
+    border-color: rgba(239, 68, 68, 0.4);
+  }
+  to {
+    border-color: rgba(239, 68, 68, 1);
+  }
+}
+
+/* Timer Display Header */
+.game-header {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(15, 12, 25, 0.85);
+  border: 1px solid #7000ff;
+  padding: 8px 24px;
+  border-radius: 30px;
+  backdrop-filter: blur(8px);
+  z-index: 5;
+}
+
+.timer-box {
+  color: #ef4444;
+  font-family: monospace;
+  font-size: 1.4rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.inventory-box {
+  color: #a855f7;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+/* Hotspots */
+.hotspot-btn {
+  position: absolute;
+  background: transparent;
+  border: 2px dashed transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hotspot-btn:hover {
+  border-color: #a855f7;
+  background: rgba(168, 85, 247, 0.1);
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+}
+
+.hotspot-computer {
+  left: 2%;
+  top: 38%;
+  width: 28%;
+  height: 42%;
+}
+
+.hotspot-safe {
+  left: 42%;
+  top: 40%;
+  width: 16%;
+  height: 35%;
+}
+
+.hotspot-door {
+  left: 72%;
+  top: 18%;
+  width: 18%;
+  height: 62%;
+}
+
+/* Modal Styling */
+.room3-modal-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(18, 14, 28, 0.96);
+  color: #ffffff;
+  padding: 28px;
+  border-radius: 16px;
+  border: 1px solid #7000ff;
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.9);
+  text-align: center;
+  z-index: 10;
+  width: 560px;
+  backdrop-filter: blur(10px);
+}
+
+.room3-modal-overlay.alarm-border {
+  border-color: #f43f5e;
+  box-shadow: 0 0 30px rgba(244, 63, 94, 0.4);
+}
+
+.room3-modal-overlay h3 {
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+  color: #c084fc;
+}
+
+.keypad-display {
+  background-color: #090a0f;
+  border: 1px solid #a855f7;
+  color: #22c55e;
+  font-family: monospace;
+  font-size: 1.8rem;
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  letter-spacing: 6px;
+}
+
+.keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.keypad-btn {
+  background: #2a1b4e;
+  color: #fff;
+  border: 1px solid #7000ff;
+  padding: 10px;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.keypad-btn:hover {
+  background: #7000ff;
+}
+
+.room3-modal-close-btn {
+  padding: 8px 18px;
+  cursor: pointer;
+  background-color: #374151;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+/* Portal / Open Door Glow Effect - شفاف ويحفظ معالم الباب */
+.door-open-overlay {
+  position: absolute;
+  left: 71.5%;
+  top: 18%;
+  width: 18.5%;
+  height: 62%;
+  border-radius: 8px;
+  background: rgba(168, 85, 247, 0.15); /* خلفية شفافة جداً تظهر تفاصيل الباب */
+  border: 2px solid #a855f7;
+  box-shadow: 0 0 25px #a855f7, inset 0 0 35px rgba(168, 85, 247, 0.6);
+  opacity: 0;
+  transition: all 0.8s ease-in-out;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* حالة تفعيل توهج الباب عند الفتح */
+.door-open-overlay.is-open {
+  opacity: 1;
+  border-color: #22c55e; /* يتغير الإطار للون الأخضر عند النجاح */
+  background: rgba(34, 197, 94, 0.15);
+  box-shadow: 0 0 35px #22c55e, inset 0 0 40px rgba(34, 197, 94, 0.5);
+  animation: doorPulseGreen 1.5s infinite alternate ease-in-out;
+}
+
+@keyframes doorPulseGreen {
+  from {
+    box-shadow: 0 0 20px #22c55e, inset 0 0 25px rgba(34, 197, 94, 0.4);
+  }
+  to {
+    box-shadow: 0 0 45px #22c55e, inset 0 0 50px rgba(34, 197, 94, 0.7);
+  }
+}
