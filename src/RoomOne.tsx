@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './RoomOne.css'
 
 const messageWords = [
@@ -29,8 +29,10 @@ type ModalName =
 
 function RoomOne({
   onEnterRoomTwo,
+  onRoomComplete,
 }: {
-  onEnterRoomTwo?: (score: number) => void
+  onEnterRoomTwo?: () => void
+  onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
 }) {
   const [secondsLeft, setSecondsLeft] = useState(15 * 60)
   const [score, setScore] = useState(750)
@@ -50,6 +52,7 @@ function RoomOne({
   const [accessGranted, setAccessGranted] = useState(false)
   const [roomComplete, setRoomComplete] = useState(false)
   const [roomTwoEntered, setRoomTwoEntered] = useState(false)
+  const completionNotifiedRef = useRef(false)
   const activeModal =
     secondsLeft === 0 && !roomComplete ? 'gameover' : modal
 
@@ -73,6 +76,12 @@ function RoomOne({
 
     return () => window.clearTimeout(animation)
   }, [doorOpen, roomComplete])
+
+  useEffect(() => {
+    if (!roomComplete || completionNotifiedRef.current) return
+    completionNotifiedRef.current = true
+    onRoomComplete?.({ score, hintsUsed: hintCount })
+  }, [hintCount, onRoomComplete, roomComplete, score])
 
   const formattedTime = `${Math.floor(secondsLeft / 60)
     .toString()
@@ -170,6 +179,7 @@ function RoomOne({
     setAccessGranted(false)
     setRoomComplete(false)
     setRoomTwoEntered(false)
+    completionNotifiedRef.current = false
     setModal(null)
   }
 
@@ -721,7 +731,7 @@ function RoomOne({
                   <button className="button button-primary enter-room-button" type="button" onClick={() => {
                     setRoomTwoEntered(true)
                     setModal('roomtwo')
-                    onEnterRoomTwo?.(score)
+                    onEnterRoomTwo?.()
                   }}>
                     ENTER ROOM 02 <span aria-hidden="true">→</span>
                   </button>

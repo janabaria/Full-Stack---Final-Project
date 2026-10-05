@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './Room3.css';
 
-export const Room3 = () => {
+type Room3Props = {
+  initialScore?: number
+  onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
+}
+
+export const Room3 = ({ initialScore = 750, onRoomComplete }: Room3Props) => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   
   // Computer Sub-screens State
@@ -9,17 +14,24 @@ export const Room3 = () => {
 
   // Game States
   const [timeLeft, setTimeLeft] = useState<number>(120);
+  const [score, setScore] = useState<number>(initialScore);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [isAlarmActive, setIsAlarmActive] = useState<boolean>(false);
   const [hasKeycard, setHasKeycard] = useState<boolean>(false);
+  const [completionSent, setCompletionSent] = useState<boolean>(false);
   const [safeInput, setSafeInput] = useState<string>('');
   const [safeUnlocked, setSafeUnlocked] = useState<boolean>(false);
   const [doorUnlocked, setDoorUnlocked] = useState<boolean>(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string>('');
+  const completionNotifiedRef = useRef(false);
 
   const CORRECT_SAFE_CODE = '7392';
 
   // Timer Effect
+  useEffect(() => {
+    setScore(initialScore);
+  }, [initialScore]);
+
   useEffect(() => {
     if (doorUnlocked) return;
     if (timeLeft <= 0) {
@@ -30,6 +42,14 @@ export const Room3 = () => {
     const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
   }, [timeLeft, doorUnlocked]);
+
+  useEffect(() => {
+    if (!doorUnlocked || completionSent || completionNotifiedRef.current) return;
+    completionNotifiedRef.current = true;
+    const finalScore = Math.max(initialScore, score + timeLeft * 5 + (safeUnlocked ? 300 : 0));
+    setCompletionSent(true);
+    onRoomComplete?.({ score: finalScore, hintsUsed: 0 });
+  }, [completionSent, doorUnlocked, initialScore, onRoomComplete, safeUnlocked, score, timeLeft]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -65,7 +85,7 @@ export const Room3 = () => {
         {/* Header Bar */}
         <div className="game-header">
           <div className="timer-box">⏰ TIME: {formatTime(timeLeft)}</div>
-          <div className="inventory-box">🎒 INVENTORY: {hasKeycard ? '💳 Security Keycard' : 'Empty'}</div>
+          <div className="inventory-box">🎒 INVENTORY: {hasKeycard ? '💳 Security Keycard' : 'Empty'} · SCORE {score.toLocaleString()}</div>
         </div>
 
         {/* 🚪 Door Opening Animated Light Overlay */}
@@ -268,7 +288,8 @@ export const Room3 = () => {
                     }}
                     onClick={() => {
                       setDoorUnlocked(true);
-                      setIsAlarmActive(false); // إيقاف أي إنذار عند الهروب
+                      setIsAlarmActive(false);
+                      setScore((current) => current + 500 + timeLeft);
                     }}
                   >
                     💳 Swipe Security Keycard
