@@ -4,9 +4,11 @@ import './Room3.css';
 type Room3Props = {
   initialScore?: number
   onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
+  onEnterFinalRoom?: () => void
+  onBackHome?: () => void
 }
 
-export const Room3 = ({ initialScore = 750, onRoomComplete }: Room3Props) => {
+export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, onBackHome }: Room3Props) => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
   
   // Computer Sub-screens State
@@ -15,7 +17,6 @@ export const Room3 = ({ initialScore = 750, onRoomComplete }: Room3Props) => {
   // Game States
   const [timeLeft, setTimeLeft] = useState<number>(120);
   const [score, setScore] = useState<number>(initialScore);
-  const [isGameOver, setIsGameOver] = useState<boolean>(false);
   const [isAlarmActive, setIsAlarmActive] = useState<boolean>(false);
   const [hasKeycard, setHasKeycard] = useState<boolean>(false);
   const [completionSent, setCompletionSent] = useState<boolean>(false);
@@ -26,22 +27,13 @@ export const Room3 = ({ initialScore = 750, onRoomComplete }: Room3Props) => {
   const completionNotifiedRef = useRef(false);
 
   const CORRECT_SAFE_CODE = '7392';
-
-  // Timer Effect
-  useEffect(() => {
-    setScore(initialScore);
-  }, [initialScore]);
+  const isGameOver = timeLeft <= 0;
 
   useEffect(() => {
-    if (doorUnlocked) return;
-    if (timeLeft <= 0) {
-      setIsGameOver(true);
-      setIsAlarmActive(true);
-      return;
-    }
+    if (doorUnlocked || isGameOver) return;
     const timer = setInterval(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearInterval(timer);
-  }, [timeLeft, doorUnlocked]);
+  }, [timeLeft, doorUnlocked, isGameOver]);
 
   useEffect(() => {
     if (!doorUnlocked || completionSent || completionNotifiedRef.current) return;
@@ -80,7 +72,10 @@ export const Room3 = ({ initialScore = 750, onRoomComplete }: Room3Props) => {
 
   return (
     <div className="room3-page-container">
-      <div className={`room3-game-canvas ${isAlarmActive ? 'alarm-active' : ''}`}>
+      <div className={`room3-game-canvas ${isAlarmActive || isGameOver ? 'alarm-active' : ''}`}>
+        <button className="room3-home-link" type="button" onClick={onBackHome}>
+          ← ALL ROOMS
+        </button>
         
         {/* Header Bar */}
         <div className="game-header">
@@ -268,7 +263,14 @@ export const Room3 = ({ initialScore = 750, onRoomComplete }: Room3Props) => {
             {doorUnlocked ? (
               <div>
                 <p style={{ color: '#4ade80', fontSize: '1.2rem', fontWeight: 'bold' }}>🎉 MISSION ACCOMPLISHED!</p>
-                <p>You bypassed the security systems and escaped Room 3!</p>
+                <p>You bypassed the security systems and cleared Room 03.</p>
+                <button
+                  className="room3-modal-close-btn room3-continue-btn"
+                  onClick={onEnterFinalRoom}
+                  type="button"
+                >
+                  ENTER THE FINAL ROOM →
+                </button>
               </div>
             ) : (
               <div>

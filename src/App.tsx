@@ -1,7 +1,10 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
+import LoginPage from './LoginPage'
 import RoomOne from './RoomOne'
 import { Room3 } from './components/Room3'
+import FinalRoom from './FinalRoom'
+import roomThreeImage from './images/ROOM3.png'
 
 type Choice = {
   text: string
@@ -26,12 +29,18 @@ type GameProgress = {
   gameCompleted: boolean
 }
 
+type PlayerSession = {
+  username: string
+}
+
 const STORAGE_KEY = 'escape-room-online-progress-v1'
+const PLAYER_KEY = 'escape-room-online-player-v1'
 
 const ROOM_CONFIG = [
-  { id: 1, name: 'THE MISSING MESSAGE', path: '/rooms/1' },
-  { id: 2, name: 'THE INTERVIEW', path: '/rooms/2' },
-  { id: 3, name: 'THE FINAL EXIT', path: '/rooms/3' },
+  { id: 1, name: 'THE MISSING MESSAGE', path: '/rooms/1', description: 'An abandoned office. A message out of order.' },
+  { id: 2, name: 'THE INTERVIEW', path: '/rooms/2', description: 'Every answer hides a fragment of the code.' },
+  { id: 3, name: 'THE SECURITY WING', path: '/rooms/3', description: 'Bypass the systems and find the keycard.' },
+  { id: 4, name: 'THE LAST LOCK', path: '/rooms/4', description: 'One final truth stands between you and freedom.' },
 ] as const
 
 const questions: Question[] = [
@@ -103,18 +112,56 @@ const defaultProgress: GameProgress = {
   gameCompleted: false,
 }
 
-function loadProgress(): GameProgress {
+function loadPlayer(): PlayerSession | null {
   try {
-    const saved = window.localStorage.getItem(STORAGE_KEY)
+    const saved = window.localStorage.getItem(PLAYER_KEY)
+    if (!saved) return null
+    const parsed = JSON.parse(saved) as Partial<PlayerSession>
+    return typeof parsed.username === 'string' && parsed.username.trim()
+      ? { username: parsed.username.trim() }
+      : null
+  } catch {
+    return null
+  }
+}
+
+function loadProgress(username?: string): GameProgress {
+  if (!username) return defaultProgress
+
+  try {
+    const profileKey = `${STORAGE_KEY}:${encodeURIComponent(username.toLocaleLowerCase())}`
+    const saved = window.localStorage.getItem(profileKey)
     if (!saved) return defaultProgress
 
     const parsed = JSON.parse(saved) as Partial<GameProgress>
 
+    const savedCompleted = Array.isArray(parsed.completedRooms)
+      ? parsed.completedRooms.filter(
+          (room): room is number =>
+            Number.isInteger(room) && room >= 1 && room <= ROOM_CONFIG.length,
+        )
+      : []
+    const completedRooms: number[] = []
+    for (let room = 1; room <= ROOM_CONFIG.length; room += 1) {
+      if (!savedCompleted.includes(room)) break
+      completedRooms.push(room)
+    }
+    const unlockedRooms = Array.from(
+      { length: completedRooms.length + 1 },
+      (_, index) => index + 1,
+    )
+    const currentRoom = Math.min(
+      Math.max(Number(parsed.currentRoom) || 1, 1),
+      unlockedRooms.length,
+    )
+
     return {
       ...defaultProgress,
       ...parsed,
-      completedRooms: Array.isArray(parsed.completedRooms) ? parsed.completedRooms : [],
-      unlockedRooms: Array.isArray(parsed.unlockedRooms) ? parsed.unlockedRooms : [1],
+      currentRoom,
+      completedRooms,
+      unlockedRooms,
+      gameCompleted: completedRooms.length === ROOM_CONFIG.length,
     }
   } catch {
     return defaultProgress
@@ -124,16 +171,18 @@ function loadProgress(): GameProgress {
 function getContinueTarget(progress: GameProgress): string {
   if (progress.gameCompleted) return '/game-complete'
   if (progress.currentRoom >= 1) return `/rooms/${progress.currentRoom}`
-  return '/rooms'
+  return '/'
 }
 
 export function RoomTwoGame({
   initialScore = 750,
   onEnterRoomThree,
+  onBackHome,
   onRoomComplete,
 }: {
   initialScore?: number
   onEnterRoomThree?: () => void
+  onBackHome?: () => void
   onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
 }) {
   const [questionIndex, setQuestionIndex] = useState(0)
@@ -152,10 +201,6 @@ export function RoomTwoGame({
     .slice(0, questionIndex + (answered && feedback === 'correct' ? 1 : 0))
     .map((item) => item.fragment)
   const password = fragments.join('')
-
-  useEffect(() => {
-    setScore(initialScore)
-  }, [initialScore])
 
   useEffect(() => {
     if (!complete || completionNotifiedRef.current) return
@@ -201,12 +246,18 @@ export function RoomTwoGame({
   return (
     <main className="game-shell room-two-shell">
       <header className="topbar">
-        <a className="brand" href="#room" aria-label="Escape Room Online home">
+        <a className="brand" href="/" onClick={(event) => {
+          event.preventDefault()
+          onBackHome?.()
+        }} aria-label="Escape Room Online home">
           <span className="brand-mark" aria-hidden="true">E</span>
           <span>ESCAPE<span className="brand-light">ROOM</span></span>
         </a>
         <nav className="main-nav" aria-label="Main navigation">
-          <a href="#rooms">Rooms</a>
+          <a href="/" onClick={(event) => {
+            event.preventDefault()
+            onBackHome?.()
+          }}>Rooms</a>
           <a href="#room">Leaderboard</a>
           <a href="#room">How to play</a>
         </nav>
@@ -408,42 +459,53 @@ export function RoomTwoGame({
 }
 
 function App() {
-  const [progress, setProgress] = useState<GameProgress>(() => loadProgress())
-  const [route, setRoute] = useState(() => window.location.pathname || '/')
+  const [player, setPlayer] = useState<PlayerSession | null>(() => loadPlayer())
+  const [progress, setProgress] = useState<GameProgress>(() => loadProgress(player?.username))
+  const [requestedRoute, setRequestedRoute] = useState(() => window.location.pathname || '/')
+  const [storageWarning, setStorageWarning] = useState('')
+  const roomMatch = requestedRoute.match(/^\/rooms\/([1-4])(?:\/|$)/)
+  const isLockedRoom = roomMatch
+    ? !progress.unlockedRooms.includes(Number(roomMatch[1]))
+    : false
+  const route = !player
+    ? '/login'
+    : requestedRoute === '/login' || isLockedRoom ||
+        (requestedRoute === '/game-complete' && !progress.gameCompleted)
+      ? '/'
+      : requestedRoute
 
   const navigate = useCallback((nextPath: string) => {
     if (window.location.pathname !== nextPath) {
       window.history.pushState({}, '', nextPath)
     }
-    setRoute(nextPath)
+    setRequestedRoute(nextPath)
   }, [])
 
   useEffect(() => {
-    const handlePopState = () => setRoute(window.location.pathname || '/')
+    const handlePopState = () => setRequestedRoute(window.location.pathname || '/')
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
   useEffect(() => {
+    if (window.location.pathname !== route) {
+      window.history.replaceState({}, '', route)
+    }
+  }, [requestedRoute, route])
+
+  useEffect(() => {
     const titleByRoute: Record<string, string> = {
+      '/login': 'Escape Room Online | Login',
       '/': 'Escape Room Online | Home',
       '/rooms': 'Escape Room Online | Mission Control',
       '/leaderboard': 'Escape Room Online | Leaderboard',
       '/game-complete': 'Escape Room Online — Final Escape',
+      '/rooms/4': 'Escape Room Online — Final Room',
     }
 
-    if (route.startsWith('/rooms/1')) {
-      document.title = 'Escape Room Online — Room 01'
-      return
-    }
-
-    if (route.startsWith('/rooms/2')) {
-      document.title = 'Escape Room Online — Room 02'
-      return
-    }
-
-    if (route.startsWith('/rooms/3')) {
-      document.title = 'Escape Room Online — Room 03'
+    const roomMatch = route.match(/^\/rooms\/([1-4])(?:\/|$)/)
+    if (roomMatch) {
+      document.title = `Escape Room Online — Room 0${roomMatch[1]}`
       return
     }
 
@@ -452,44 +514,40 @@ function App() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
-    } catch {
-      // ignore storage issues
+      if (player) {
+        const profileKey = `${STORAGE_KEY}:${encodeURIComponent(player.username.toLocaleLowerCase())}`
+        window.localStorage.setItem(profileKey, JSON.stringify(progress))
+      }
+    } catch (error) {
+      console.error('Could not save escape-room progress.', error)
     }
-  }, [progress])
-
-  useEffect(() => {
-    const path = window.location.pathname || '/'
-    const requiredRoomOne = path.startsWith('/rooms/1') && !progress.unlockedRooms.includes(1)
-    const requiredRoomTwo = path.startsWith('/rooms/2') && !progress.unlockedRooms.includes(2)
-    const requiredRoomThree = path.startsWith('/rooms/3') && !progress.unlockedRooms.includes(3)
-
-    if (requiredRoomOne || requiredRoomTwo || requiredRoomThree) {
-      navigate('/rooms')
-    }
-  }, [navigate, progress.unlockedRooms])
+  }, [player, progress])
 
   const continueTarget = useMemo(() => getContinueTarget(progress), [progress])
 
   const completeRoom = useCallback((room: number, finalScore: number, usedHints: number) => {
     setProgress((current) => {
+      if (room > 1 && !current.completedRooms.includes(room - 1)) return current
+      if (current.completedRooms.includes(room)) return current
+
       const completedRooms = current.completedRooms.includes(room)
         ? current.completedRooms
         : [...current.completedRooms, room]
 
-      const unlockedRooms = Array.from(new Set([...current.unlockedRooms, room === 1 ? 2 : room === 2 ? 3 : 3]))
-
-      const nextScore = Math.max(finalScore, current.score)
-      const nextGameCompleted = room === 3 || current.gameCompleted
+      const unlockedRooms = Array.from(
+        { length: Math.min(completedRooms.length + 1, ROOM_CONFIG.length) },
+        (_, index) => index + 1,
+      )
 
       return {
         ...current,
-        currentRoom: room === 3 ? 3 : room + 1,
+        currentRoom: Math.min(room + 1, ROOM_CONFIG.length),
         completedRooms,
         unlockedRooms,
-        score: nextScore,
+        score: Math.max(finalScore, current.score),
         hintsUsed: current.hintsUsed + usedHints,
-        gameCompleted: nextGameCompleted,
+        gameCompleted: room === ROOM_CONFIG.length,
+        gameStarted: true,
       }
     })
   }, [])
@@ -503,35 +561,63 @@ function App() {
   }, [completeRoom])
 
   const handleRoomThreeComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-    setProgress((current) => ({
-      ...current,
-      score: Math.max(current.score, details.score),
-      completedRooms: [...new Set([...current.completedRooms, 3])],
-      currentRoom: 3,
-      gameCompleted: true,
-      gameStarted: true,
-      unlockedRooms: [1, 2, 3],
-    }))
+    completeRoom(3, details.score, details.hintsUsed)
+  }, [completeRoom])
+
+  const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    completeRoom(4, details.score, details.hintsUsed)
     navigate('/game-complete')
+  }, [completeRoom, navigate])
+
+  const handleLogin = useCallback((username: string) => {
+    const nextPlayer = { username }
+    try {
+      window.localStorage.setItem(PLAYER_KEY, JSON.stringify(nextPlayer))
+      setProgress(loadProgress(username))
+      setStorageWarning('')
+      setPlayer(nextPlayer)
+      navigate('/')
+      return true
+    } catch (error) {
+      console.error('Could not create the local player session.', error)
+      return false
+    }
+  }, [navigate])
+
+  const handleLogout = useCallback(() => {
+    try {
+      window.localStorage.removeItem(PLAYER_KEY)
+      setPlayer(null)
+      navigate('/login')
+    } catch (error) {
+      console.error('Could not clear the local player session.', error)
+      setStorageWarning('Could not sign out. Check your browser storage settings.')
+    }
   }, [navigate])
 
   const handleRoomOneEnter = useCallback(() => {
-    setProgress((current) => ({
-      ...current,
-      currentRoom: 2,
-      unlockedRooms: [...new Set([...current.unlockedRooms, 2])],
-    }))
+    if (!progress.completedRooms.includes(1)) {
+      navigate('/')
+      return
+    }
     navigate('/rooms/2')
-  }, [navigate])
+  }, [navigate, progress.completedRooms])
 
   const handleRoomTwoEnter = useCallback(() => {
-    setProgress((current) => ({
-      ...current,
-      currentRoom: 3,
-      unlockedRooms: [...new Set([...current.unlockedRooms, 3])],
-    }))
+    if (!progress.completedRooms.includes(2)) {
+      navigate('/')
+      return
+    }
     navigate('/rooms/3')
-  }, [navigate])
+  }, [navigate, progress.completedRooms])
+
+  const handleRoomThreeEnter = useCallback(() => {
+    if (!progress.completedRooms.includes(3)) {
+      navigate('/')
+      return
+    }
+    navigate('/rooms/4')
+  }, [navigate, progress.completedRooms])
 
   const startGame = useCallback(() => {
     setProgress((current) => ({
@@ -582,16 +668,22 @@ function App() {
             <button
               key={room.id}
               type="button"
-              className={`room-card ${isCurrent ? 'is-current' : ''} ${isCompleted ? 'is-complete' : ''} ${isUnlocked ? 'is-unlocked' : 'is-locked'}`}
+              className={`room-card room-art-${room.id} ${isCurrent ? 'is-current' : ''} ${isCompleted ? 'is-complete' : ''} ${isUnlocked ? 'is-unlocked' : 'is-locked'}`}
               disabled={!isUnlocked}
               onClick={() => isUnlocked && navigate(room.path)}
+              style={room.id === 3 ? {
+                backgroundImage: `linear-gradient(180deg, rgba(8, 8, 16, .18), rgba(8, 8, 16, .96)), url(${roomThreeImage})`,
+              } : undefined}
+              aria-label={`Room ${room.id}: ${room.name}. ${isCompleted ? 'Completed' : isUnlocked ? 'Unlocked' : `Locked. Complete room ${room.id - 1} to unlock.`}`}
             >
-              <span className="card-kicker">ROOM {room.id}</span>
+              <span className="room-card-art" aria-hidden="true" />
+              <span className="card-kicker">ROOM 0{room.id}</span>
               <h3>{room.name}</h3>
+              <p className="room-card-description">{room.description}</p>
               <div className="room-card-state">
                 {isCompleted && <span>✓ COMPLETED</span>}
-                {!isCompleted && isUnlocked && <span>🔓 UNLOCKED</span>}
-                {!isCompleted && !isUnlocked && <span>🔒 LOCKED</span>}
+                {!isCompleted && isUnlocked && <span>◇ UNLOCKED <b>GO TO ROOM {room.id} →</b></span>}
+                {!isCompleted && !isUnlocked && <span>⌑ LOCKED — COMPLETE ROOM {room.id - 1} TO UNLOCK</span>}
               </div>
             </button>
           )
@@ -604,37 +696,94 @@ function App() {
     if (route === '/') {
       return (
         <div className="dashboard-shell home-shell">
-          <header className="app-header compact">
-            <div>
-              <p className="eyebrow-header">ESCAPE ROOM ONLINE</p>
-              <h1>Home</h1>
+          <header className="app-header compact home-header">
+            <div className="home-wordmark">
+              <span className="home-brand-mark">E</span>
+              <div>
+                <p className="eyebrow-header">YOUR INVESTIGATION BEGINS</p>
+                <h1>Escape Room Online</h1>
+              </div>
+            </div>
+            <div className="home-account">
+              <span className="home-player">AGENT <strong>{player?.username}</strong></span>
+              <button className="ghost-button" type="button" onClick={handleLogout}>SIGN OUT</button>
             </div>
           </header>
 
           <section className="home-panel">
             <div className="home-copy">
-              <p className="eyebrow-header">MISSION BRIEF</p>
-              <h2>Three rooms. One final escape.</h2>
+              <p className="eyebrow-header">MISSION BRIEF <span className="brief-marker">/ 04 ROOMS</span></p>
+              <h2>Solve the puzzles,<br />unlock the rooms.</h2>
               <p>
-                Recover the missing message, unlock the interview chamber, and escape the final vault before time runs out.
+                Solve the puzzles, unlock the rooms, and escape before time runs out.
               </p>
             </div>
             <div className="home-actions">
-              <button className="primary-button" type="button" onClick={startGame}>
-                {progress.gameStarted ? 'START OVER' : 'START GAME'}
+              <button className="primary-button" type="button" onClick={() => navigate('/rooms/1')}>
+                GO TO ROOM 1 <span aria-hidden="true">→</span>
               </button>
               {progress.gameStarted && (
                 <button className="ghost-button" type="button" onClick={() => navigate(continueTarget)}>
                   CONTINUE GAME
                 </button>
               )}
+              <button className="home-restart-link" type="button" onClick={startGame}>
+                {progress.gameStarted ? 'RESTART CAMPAIGN' : 'NEW INVESTIGATION'}
+              </button>
+            </div>
+          </section>
+
+          {storageWarning && <p className="storage-warning" role="alert">{storageWarning}</p>}
+
+          <section className="progression-section" aria-labelledby="progression-title">
+            <div className="progression-heading">
+              <div>
+                <p className="eyebrow-header">THE ESCAPE SEQUENCE</p>
+                <h2 id="progression-title">Your path through the rooms</h2>
+              </div>
+              <span className="progression-count">{progress.completedRooms.length} / 4 CLEARED</span>
+            </div>
+            <div className="room-grid home-room-grid">
+              {ROOM_CONFIG.map((room, index) => {
+                const isCompleted = progress.completedRooms.includes(room.id)
+                const isUnlocked = progress.unlockedRooms.includes(room.id)
+                const isCurrent = progress.currentRoom === room.id && !isCompleted
+                return (
+                  <button
+                    key={room.id}
+                    type="button"
+                    className={`room-card room-art-${room.id} ${isCurrent ? 'is-current' : ''} ${isCompleted ? 'is-complete' : ''} ${isUnlocked ? 'is-unlocked' : 'is-locked'}`}
+                    disabled={!isUnlocked}
+                    onClick={() => isUnlocked && navigate(room.path)}
+                    style={room.id === 3 ? {
+                      backgroundImage: `linear-gradient(180deg, rgba(8, 8, 16, .18), rgba(8, 8, 16, .97)), url(${roomThreeImage})`,
+                    } : undefined}
+                    aria-label={`Room ${room.id}: ${room.name}. ${isCompleted ? 'Completed' : isUnlocked ? 'Unlocked' : `Locked. Complete room ${room.id - 1} to unlock.`}`}
+                  >
+                    <span className="room-card-art" aria-hidden="true" />
+                    <span className="room-card-topline"><span>ROOM 0{room.id}</span><i>{isCompleted ? '✓' : isUnlocked ? '◇' : '⌑'}</i></span>
+                    <span className="room-card-copy">
+                      <strong>{room.name}</strong>
+                      <span>{room.description}</span>
+                    </span>
+                    <span className={`room-card-state ${isUnlocked ? 'state-open' : 'state-locked'}`}>
+                      {isCompleted
+                        ? '✓ COMPLETED'
+                        : isUnlocked
+                          ? <>UNLOCKED <b>GO TO ROOM {room.id} <i aria-hidden="true">→</i></b></>
+                          : <>⌑ LOCKED <small>Complete Room {room.id - 1} to unlock.</small></>}
+                    </span>
+                    {index < ROOM_CONFIG.length - 1 && <span className="room-connector" aria-hidden="true">→</span>}
+                  </button>
+                )
+              })}
             </div>
           </section>
 
           <div className="summary-grid">
             <div className="summary-card">
               <span>ROOMS COMPLETED</span>
-              <strong>{progress.completedRooms.length}/3</strong>
+              <strong>{progress.completedRooms.length}/4</strong>
             </div>
             <div className="summary-card">
               <span>SCORE</span>
@@ -714,6 +863,7 @@ function App() {
       return (
         <RoomOne
           onEnterRoomTwo={handleRoomOneEnter}
+          onBackHome={() => navigate('/')}
           onRoomComplete={handleRoomOneComplete}
         />
       )
@@ -728,6 +878,7 @@ function App() {
         <RoomTwoGame
           initialScore={progress.score}
           onEnterRoomThree={handleRoomTwoEnter}
+          onBackHome={() => navigate('/')}
           onRoomComplete={handleRoomTwoComplete}
         />
       )
@@ -741,13 +892,27 @@ function App() {
       return (
         <Room3
           initialScore={progress.score}
+          onBackHome={() => navigate('/')}
           onRoomComplete={handleRoomThreeComplete}
+          onEnterFinalRoom={handleRoomThreeEnter}
+        />
+      )
+    }
+
+    if (route.startsWith('/rooms/4')) {
+      if (!progress.unlockedRooms.includes(4)) return null
+      return (
+        <FinalRoom
+          initialScore={progress.score}
+          onComplete={handleRoomFourComplete}
         />
       )
     }
 
     return <div>{roomsPage}</div>
   }
+
+  if (!player) return <LoginPage onLogin={handleLogin} />
 
   return renderContent()
 }

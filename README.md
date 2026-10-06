@@ -1,32 +1,31 @@
-# React + TypeScript + Vite
+# Escape Room Online
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A cinematic, four-room React escape-room game. Players sign in to a local session, solve each room in sequence, and keep campaign progress between visits.
 
-Currently, two official plugins are available:
+## Run locally
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+npm ci
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Useful checks:
+
+```sh
+npm run build
+npm run lint
+```
+
+## Game flow
+
+- `/login` appears before Home when there is no local player session.
+- Home shows the four-room progression and keeps each room unavailable until the previous room is completed.
+- Rooms are available at `/rooms/1` through `/rooms/4`; attempts to open a locked room URL return to Home.
+- Completing Room 04 opens the final escape screen at `/game-complete`.
+- Player session and progress are stored separately per username in browser `localStorage`.
+
+## Authentication and persistence
+
+There is no backend or database in this project. Sign-in is a **local demo session**: any non-empty username/email and password creates a session, and the password is not stored. The route guard prevents casual navigation to Home or locked rooms, but browser storage is controlled by the player and is not a security boundary. A production online game should use server-verified sessions and enforce room unlocks and progress on the backend.
+
+The room-completion callbacks in `src/App.tsx` are the integration points for replacing local progress storage with API/database calls.
