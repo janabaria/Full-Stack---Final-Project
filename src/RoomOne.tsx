@@ -29,9 +29,11 @@ type ModalName =
 
 function RoomOne({
   onEnterRoomTwo,
+  onBackHome,
   onRoomComplete,
 }: {
   onEnterRoomTwo?: () => void
+  onBackHome?: () => void
   onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
 }) {
   const [secondsLeft, setSecondsLeft] = useState(15 * 60)
@@ -668,6 +670,11 @@ function RoomOne({
                   <button className="button button-secondary" type="button" onClick={restartRoom}>
                     RESTART ROOM 01
                   </button>
+                  {onBackHome && (
+                    <button className="button button-secondary" type="button" onClick={onBackHome}>
+                      BACK TO HOME
+                    </button>
+                  )}
                 </div>
               </div>
             )}

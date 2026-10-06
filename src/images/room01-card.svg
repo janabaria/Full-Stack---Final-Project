@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" fill="none">
+  <defs>
+    <linearGradient id="wall" x2="0" y2="1"><stop stop-color="#302938"/><stop offset="1" stop-color="#17151c"/></linearGradient>
+    <linearGradient id="wood" x2="0" y2="1"><stop stop-color="#966943"/><stop offset="1" stop-color="#38251d"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#ddb56f" stop-opacity=".52"/><stop offset="1" stop-color="#ddb56f" stop-opacity="0"/></radialGradient>
+  </defs>
+  <path fill="url(#wall)" d="M0 0h720v315H0z"/>
+  <path stroke="#0c0b11" stroke-opacity=".5" stroke-width="8" d="M130 0v315m170-315v315m170-315v315m170-315v315"/>
+  <path fill="#171722" stroke="#816c8e" stroke-opacity=".36" stroke-width="4" d="M265 60h115v155H265z"/>
+  <path stroke="#9b88a4" stroke-opacity=".3" stroke-width="3" d="M322 62v151m-55-77h111"/>
+  <path fill="#34271f" stroke="#a67c4e" stroke-opacity=".4" stroke-width="4" d="M66 100h112v185H66z"/>
+  <path stroke="#76563a" stroke-width="8" d="M62 158h120m-120 60h120"/>
+  <path fill="#754e35" d="M76 123h13v34H76zm22-15h15v49H98zm25 9h13v40h-13zm24-16h14v56h-14zm-67 72h15v48H80zm27 8h13v40h-13zm27-13h14v53h-14zm-55 76h13v27H79zm25-10h17v37h-17zm30 2h12v35h-12z"/>
+  <ellipse cx="472" cy="244" rx="190" ry="120" fill="url(#glow)"/>
+  <path fill="url(#wood)" stroke="#261812" stroke-width="8" d="M185 263h374l-34 30H218z"/>
+  <path fill="#4c3021" d="M226 292h28v108h-28zm280 0h28v108h-28z"/>
+  <path fill="#cbb58e" d="m377 236 91-4-4 25-91 5z"/>
+  <path stroke="#756347" stroke-width="2" d="m390 241 54-2m-50 8 37-2"/>
+  <path stroke="#af8c5a" stroke-width="5" d="M494 216v-38"/>
+  <path fill="#c4a36d" d="m467 180 54-6-12 30h-33z"/>
+  <circle cx="494" cy="202" r="48" fill="url(#glow)" opacity=".35"/>
+  <path fill="#d8c18f" d="M557 264h58v42h-58z"/>
+  <path stroke="#74573b" stroke-width="2" d="m558 265 28 20 29-20m-57 40 28-20 29 20"/>
+  <path fill="#25202d" d="M0 315h720v105H0z"/>
+  <path stroke="#0e0d13" stroke-opacity=".75" stroke-width="5" d="M0 355h720M145 316l-38 104m203-104-16 104m211-104 30 104"/>
+</svg>
