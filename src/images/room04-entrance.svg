@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" fill="none">
+  <defs>
+    <linearGradient id="wall" x2="0" y2="1"><stop stop-color="#27242e"/><stop offset="1" stop-color="#111117"/></linearGradient>
+    <linearGradient id="wood" x2="1"><stop stop-color="#281b17"/><stop offset=".48" stop-color="#68402b"/><stop offset="1" stop-color="#241916"/></linearGradient>
+    <radialGradient id="lamp"><stop stop-color="#f2c779" stop-opacity=".8"/><stop offset="1" stop-color="#d38b43" stop-opacity="0"/></radialGradient>
+    <linearGradient id="floor" x2="0" y2="1"><stop stop-color="#24202a"/><stop offset="1" stop-color="#0c0b10"/></linearGradient>
+  </defs>
+  <path fill="url(#wall)" d="M0 0h720v322H0z"/>
+  <path stroke="#b59b77" stroke-opacity=".16" stroke-width="5" d="M54 0v322m612-322v322M0 84h720m-720 208h720"/>
+  <path fill="#19161c" stroke="#8b735c" stroke-opacity=".58" stroke-width="8" d="M214 28h292v294H214z"/>
+  <path fill="url(#wood)" stroke="#b18a5b" stroke-opacity=".6" stroke-width="5" d="M239 49h242v273H239z"/>
+  <path stroke="#c6a16a" stroke-opacity=".42" stroke-width="4" d="M259 69h202v234H259z"/>
+  <path stroke="#c6a16a" stroke-opacity=".36" stroke-width="3" d="M360 72v229m-96-112h192"/>
+  <path fill="#171317" stroke="#a68251" stroke-width="5" d="M320 145h80v111h-80z"/>
+  <circle cx="379" cy="202" r="8" fill="#e3bd72"/>
+  <path fill="#1b171c" stroke="#7e6954" stroke-width="5" d="M100 75h64v122h-64z"/>
+  <path fill="#a57841" d="M112 93h40v5h-40zm0 13h40v5h-40zm0 13h31v5h-31z"/>
+  <path fill="#30282b" stroke="#a7835c" stroke-opacity=".6" stroke-width="4" d="M554 103h76v94h-76z"/>
+  <path stroke="#b99c70" stroke-opacity=".6" stroke-width="3" d="m571 173 18-28 17 15 13-22"/>
+  <path fill="url(#lamp)" d="M53 74h150v180H53z"/>
+  <path fill="#cf9c52" d="M117 95h16v64h-16z"/><path fill="#e6bd76" d="m99 95 26-19 26 19z"/>
+  <path fill="#4b3728" d="M91 158h68l16 11H75z"/>
+  <path fill="url(#lamp)" d="M526 83h154v174H526z"/>
+  <path fill="#cf9c52" d="M590 103h16v64h-16z"/><path fill="#e6bd76" d="m572 103 26-19 26 19z"/>
+  <path fill="#4b3728" d="M564 166h68l16 11h-100z"/>
+  <path fill="url(#floor)" d="M0 322h720v98H0z"/>
+  <path stroke="#9a7952" stroke-opacity=".3" stroke-width="3" d="M0 345h720M142 322l-48 98m243-98-8 98m235-98 52 98"/>
+  <ellipse cx="360" cy="346" rx="176" ry="17" fill="#c28c4c" fill-opacity=".16"/>
+</svg>

@@ -541,7 +541,27 @@ a:focus-visible {
 }
 
 .room-art-4 .room-card-art {
-  background: url('./images/room04-card.svg') center / cover no-repeat;
+  background: url('./images/room04-entrance.svg') center / cover no-repeat;
+}
+
+.room-art-5 .room-card-art {
+  background: url('./images/room05-entrance.svg') center / cover no-repeat;
+}
+
+.room-card.room-art-4::before,
+.room-card.room-art-5::before {
+  z-index: 1;
+}
+
+.room-card.room-art-4 .room-card-art,
+.room-card.room-art-5 .room-card-art {
+  z-index: 0;
+}
+
+.room-card.room-art-4 > :not(.room-card-art):not(.room-connector),
+.room-card.room-art-5 > :not(.room-card-art):not(.room-connector) {
+  position: relative;
+  z-index: 2;
 }
 
 .room-card:hover:not(:disabled) {

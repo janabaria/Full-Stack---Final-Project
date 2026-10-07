@@ -269,7 +269,7 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
                   onClick={onEnterFinalRoom}
                   type="button"
                 >
-                  ENTER THE FINAL ROOM →
+                  ENTER ROOM 04 →
                 </button>
               </div>
             ) : (

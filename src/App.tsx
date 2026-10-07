@@ -6,6 +6,7 @@ import RoomOne from './RoomOne'
 import { Room3 } from './components/Room3'
 import FinalRoom from './FinalRoom'
 import roomThreeImage from './images/ROOM3.png'
+import { RoomFive } from './components/RoomFive'
 
 type Choice = {
   text: string
@@ -41,7 +42,8 @@ const ROOM_CONFIG = [
   { id: 1, name: 'THE MISSING MESSAGE', path: '/rooms/1', description: 'An abandoned office. A message out of order.' },
   { id: 2, name: 'THE INTERVIEW', path: '/rooms/2', description: 'Every answer hides a fragment of the code.' },
   { id: 3, name: 'THE SECURITY WING', path: '/rooms/3', description: 'Bypass the systems and find the keycard.' },
-  { id: 4, name: 'THE LAST LOCK', path: '/rooms/4', description: 'One final truth stands between you and freedom.' },
+  { id: 4, name: 'THE MYSTERIOUS STUDY', path: '/rooms/4', description: 'Search the room to find hidden items and unlock the door.' },
+  { id: 5, name: 'THE LAST LOCK', path: '/rooms/5', description: 'One final truth stands between you and freedom.' },
 ] as const
 
 const questions: Question[] = [
@@ -126,6 +128,37 @@ function loadPlayer(): PlayerSession | null {
   }
 }
 
+function normalizeProgress(parsed: Partial<GameProgress>): GameProgress {
+  const savedCompleted = Array.isArray(parsed.completedRooms)
+    ? parsed.completedRooms
+      .filter(
+        (room): room is number =>
+          Number.isInteger(room) && ROOM_CONFIG.some((config) => config.id === room),
+      )
+    : []
+  const completedRooms: number[] = []
+  for (const room of ROOM_CONFIG) {
+    if (!savedCompleted.includes(room.id)) break
+    completedRooms.push(room.id)
+  }
+  const unlockedRooms = ROOM_CONFIG
+    .slice(0, completedRooms.length + 1)
+    .map((room) => room.id)
+  const currentRoom = Math.min(
+    Math.max(Number(parsed.currentRoom) || 1, 1),
+    unlockedRooms.length,
+  )
+
+  return {
+    ...defaultProgress,
+    ...parsed,
+    currentRoom,
+    completedRooms,
+    unlockedRooms,
+    gameCompleted: completedRooms.length === ROOM_CONFIG.length,
+  }
+}
+
 function loadProgress(username?: string): GameProgress {
   if (!username) return defaultProgress
 
@@ -133,37 +166,7 @@ function loadProgress(username?: string): GameProgress {
     const profileKey = `${STORAGE_KEY}:${encodeURIComponent(username.toLocaleLowerCase())}`
     const saved = window.localStorage.getItem(profileKey)
     if (!saved) return defaultProgress
-
-    const parsed = JSON.parse(saved) as Partial<GameProgress>
-
-    const savedCompleted = Array.isArray(parsed.completedRooms)
-      ? parsed.completedRooms.filter(
-          (room): room is number =>
-            Number.isInteger(room) && room >= 1 && room <= ROOM_CONFIG.length,
-        )
-      : []
-    const completedRooms: number[] = []
-    for (let room = 1; room <= ROOM_CONFIG.length; room += 1) {
-      if (!savedCompleted.includes(room)) break
-      completedRooms.push(room)
-    }
-    const unlockedRooms = Array.from(
-      { length: completedRooms.length + 1 },
-      (_, index) => index + 1,
-    )
-    const currentRoom = Math.min(
-      Math.max(Number(parsed.currentRoom) || 1, 1),
-      unlockedRooms.length,
-    )
-
-    return {
-      ...defaultProgress,
-      ...parsed,
-      currentRoom,
-      completedRooms,
-      unlockedRooms,
-      gameCompleted: completedRooms.length === ROOM_CONFIG.length,
-    }
+    return normalizeProgress(JSON.parse(saved) as Partial<GameProgress>)
   } catch {
     return defaultProgress
   }
@@ -171,8 +174,7 @@ function loadProgress(username?: string): GameProgress {
 
 function getContinueTarget(progress: GameProgress): string {
   if (progress.gameCompleted) return '/game-complete'
-  if (progress.currentRoom >= 1) return `/rooms/${progress.currentRoom}`
-  return '/'
+  return ROOM_CONFIG[progress.currentRoom - 1]?.path ?? '/'
 }
 
 export function RoomTwoGame({
@@ -469,7 +471,7 @@ function App() {
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([])
   const [leaderboardError, setLeaderboardError] = useState('')
   const playerKey = player?.username.toLocaleLowerCase() ?? null
-  const roomMatch = requestedRoute.match(/^\/rooms\/([1-4])(?:\/|$)/)
+  const roomMatch = requestedRoute.match(/^\/rooms\/([1-5])(?:\/|$)/)
   const isLockedRoom = roomMatch
     ? !progress.unlockedRooms.includes(Number(roomMatch[1]))
     : false
@@ -506,10 +508,10 @@ function App() {
       '/rooms': 'Escape Room Online | Mission Control',
       '/leaderboard': 'Escape Room Online | Leaderboard',
       '/game-complete': 'Escape Room Online — Final Escape',
-      '/rooms/4': 'Escape Room Online — Final Room',
+      '/rooms/5': 'Escape Room Online — Final Room',
     }
 
-    const roomMatch = route.match(/^\/rooms\/([1-4])(?:\/|$)/)
+    const roomMatch = route.match(/^\/rooms\/([1-5])(?:\/|$)/)
     if (roomMatch) {
       document.title = `Escape Room Online — Room 0${roomMatch[1]}`
       return
@@ -536,7 +538,7 @@ function App() {
     getPlayerProgress(playerKey)
       .then((remoteProgress) => {
         if (!active) return
-        if (remoteProgress) setProgress(remoteProgress)
+        if (remoteProgress) setProgress(normalizeProgress(remoteProgress))
         setHydratedUsername(playerKey)
       })
       .catch((error: unknown) => {
@@ -607,26 +609,28 @@ function App() {
 
   const completeRoom = useCallback((room: number, finalScore: number, usedHints: number) => {
     setProgress((current) => {
-      if (room > 1 && !current.completedRooms.includes(room - 1)) return current
+      const roomIndex = ROOM_CONFIG.findIndex((config) => config.id === room)
+      if (roomIndex < 0) return current
+      const previousRoom = ROOM_CONFIG[roomIndex - 1]
+      if (previousRoom && !current.completedRooms.includes(previousRoom.id)) return current
       if (current.completedRooms.includes(room)) return current
 
       const completedRooms = current.completedRooms.includes(room)
         ? current.completedRooms
         : [...current.completedRooms, room]
 
-      const unlockedRooms = Array.from(
-        { length: Math.min(completedRooms.length + 1, ROOM_CONFIG.length) },
-        (_, index) => index + 1,
-      )
+      const unlockedRooms = ROOM_CONFIG
+        .slice(0, Math.min(completedRooms.length + 1, ROOM_CONFIG.length))
+        .map((config) => config.id)
 
       return {
         ...current,
-        currentRoom: Math.min(room + 1, ROOM_CONFIG.length),
+        currentRoom: Math.min(roomIndex + 2, ROOM_CONFIG.length),
         completedRooms,
         unlockedRooms,
         score: Math.max(finalScore, current.score),
         hintsUsed: current.hintsUsed + usedHints,
-        gameCompleted: room === ROOM_CONFIG.length,
+        gameCompleted: completedRooms.length === ROOM_CONFIG.length,
         gameStarted: true,
       }
     })
@@ -643,11 +647,6 @@ function App() {
   const handleRoomThreeComplete = useCallback((details: { score: number; hintsUsed: number }) => {
     completeRoom(3, details.score, details.hintsUsed)
   }, [completeRoom])
-
-  const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-    completeRoom(4, details.score, details.hintsUsed)
-    navigate('/game-complete')
-  }, [completeRoom, navigate])
 
   const handleLogin = useCallback((username: string) => {
     const nextPlayer = { username }
@@ -717,6 +716,23 @@ function App() {
     navigate('/rooms/4')
   }, [navigate, progress.completedRooms])
 
+  const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    completeRoom(4, details.score, details.hintsUsed)
+  }, [completeRoom])
+
+  const handleRoomFiveComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    completeRoom(5, details.score, details.hintsUsed)
+    navigate('/game-complete')
+  }, [completeRoom, navigate])
+
+  const handleFinishCampaign = useCallback(() => {
+    if (!progress.completedRooms.includes(5)) {
+      navigate('/')
+      return
+    }
+    navigate('/game-complete')
+  }, [navigate, progress.completedRooms])
+
   const startGame = useCallback(() => {
     setProgress((current) => ({
       ...current,
@@ -757,10 +773,11 @@ function App() {
       </section>
 
       <div className="room-grid">
-        {ROOM_CONFIG.map((room) => {
+        {ROOM_CONFIG.map((room, index) => {
           const isCompleted = progress.completedRooms.includes(room.id)
           const isUnlocked = progress.unlockedRooms.includes(room.id)
-          const isCurrent = progress.currentRoom === room.id && !isCompleted
+          const isCurrent = progress.currentRoom === index + 1 && !isCompleted
+          const previousRoom = ROOM_CONFIG[index - 1]
 
           return (
             <button
@@ -772,7 +789,7 @@ function App() {
               style={room.id === 3 ? {
                 backgroundImage: `linear-gradient(180deg, rgba(8, 8, 16, .18), rgba(8, 8, 16, .96)), url(${roomThreeImage})`,
               } : undefined}
-              aria-label={`Room ${room.id}: ${room.name}. ${isCompleted ? 'Completed' : isUnlocked ? 'Unlocked' : `Locked. Complete room ${room.id - 1} to unlock.`}`}
+              aria-label={`Room ${room.id}: ${room.name}. ${isCompleted ? 'Completed' : isUnlocked ? 'Unlocked' : `Locked. Complete room ${previousRoom?.id} to unlock.`}`}
             >
               <span className="room-card-art" aria-hidden="true" />
               <span className="card-kicker">ROOM 0{room.id}</span>
@@ -781,7 +798,7 @@ function App() {
               <div className="room-card-state">
                 {isCompleted && <span>✓ COMPLETED</span>}
                 {!isCompleted && isUnlocked && <span>◇ UNLOCKED <b>GO TO ROOM {room.id} →</b></span>}
-                {!isCompleted && !isUnlocked && <span>⌑ LOCKED — COMPLETE ROOM {room.id - 1} TO UNLOCK</span>}
+                {!isCompleted && !isUnlocked && <span>⌑ LOCKED — COMPLETE ROOM {previousRoom?.id} TO UNLOCK</span>}
               </div>
             </button>
           )
@@ -810,7 +827,7 @@ function App() {
 
           <section className="home-panel">
             <div className="home-copy">
-              <p className="eyebrow-header">MISSION BRIEF <span className="brief-marker">/ 04 ROOMS</span></p>
+              <p className="eyebrow-header">MISSION BRIEF <span className="brief-marker">/ 05 ROOMS</span></p>
               <h2>Solve the puzzles,<br />unlock the rooms.</h2>
               <p>
                 Solve the puzzles, unlock the rooms, and escape before time runs out.
@@ -846,13 +863,14 @@ function App() {
                 <p className="eyebrow-header">THE ESCAPE SEQUENCE</p>
                 <h2 id="progression-title">Your path through the rooms</h2>
               </div>
-              <span className="progression-count">{progress.completedRooms.length} / 4 CLEARED</span>
+              <span className="progression-count">{progress.completedRooms.length} / {ROOM_CONFIG.length} CLEARED</span>
             </div>
             <div className="room-grid home-room-grid">
               {ROOM_CONFIG.map((room, index) => {
                 const isCompleted = progress.completedRooms.includes(room.id)
                 const isUnlocked = progress.unlockedRooms.includes(room.id)
-                const isCurrent = progress.currentRoom === room.id && !isCompleted
+                const isCurrent = progress.currentRoom === index + 1 && !isCompleted
+                const previousRoom = ROOM_CONFIG[index - 1]
                 return (
                   <button
                     key={room.id}
@@ -863,7 +881,7 @@ function App() {
                     style={room.id === 3 ? {
                       backgroundImage: `linear-gradient(180deg, rgba(8, 8, 16, .18), rgba(8, 8, 16, .97)), url(${roomThreeImage})`,
                     } : undefined}
-                    aria-label={`Room ${room.id}: ${room.name}. ${isCompleted ? 'Completed' : isUnlocked ? 'Unlocked' : `Locked. Complete room ${room.id - 1} to unlock.`}`}
+                    aria-label={`Room ${room.id}: ${room.name}. ${isCompleted ? 'Completed' : isUnlocked ? 'Unlocked' : `Locked. Complete room ${previousRoom?.id} to unlock.`}`}
                   >
                     <span className="room-card-art" aria-hidden="true" />
                     <span className="room-card-topline"><span>ROOM 0{room.id}</span><i>{isCompleted ? '✓' : isUnlocked ? '◇' : '⌑'}</i></span>
@@ -876,7 +894,7 @@ function App() {
                         ? '✓ COMPLETED'
                         : isUnlocked
                           ? <>UNLOCKED <b>GO TO ROOM {room.id} <i aria-hidden="true">→</i></b></>
-                          : <>⌑ LOCKED <small>Complete Room {room.id - 1} to unlock.</small></>}
+                          : <>⌑ LOCKED <small>Complete Room {previousRoom?.id} to unlock.</small></>}
                     </span>
                     {index < ROOM_CONFIG.length - 1 && <span className="room-connector" aria-hidden="true">→</span>}
                   </button>
@@ -888,7 +906,7 @@ function App() {
           <div className="summary-grid">
             <div className="summary-card">
               <span>ROOMS COMPLETED</span>
-              <strong>{progress.completedRooms.length}/4</strong>
+              <strong>{progress.completedRooms.length}/{ROOM_CONFIG.length}</strong>
             </div>
             <div className="summary-card">
               <span>SCORE</span>
@@ -1006,9 +1024,21 @@ function App() {
     if (route.startsWith('/rooms/4')) {
       if (!progress.unlockedRooms.includes(4)) return null
       return (
+        <RoomFive
+          initialScore={progress.score}
+          onRoomComplete={handleRoomFourComplete}
+          onEnterFinalRoom={handleFinishCampaign}
+          onBackHome={() => navigate('/')}
+        />
+      )
+    }
+
+    if (route.startsWith('/rooms/5')) {
+      if (!progress.unlockedRooms.includes(5)) return null
+      return (
         <FinalRoom
           initialScore={progress.score}
-          onComplete={handleRoomFourComplete}
+          onComplete={handleRoomFiveComplete}
         />
       )
     }

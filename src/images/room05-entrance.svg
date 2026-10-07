@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" fill="none">
+  <defs>
+    <linearGradient id="stone" x2="0" y2="1"><stop stop-color="#252632"/><stop offset="1" stop-color="#101116"/></linearGradient>
+    <linearGradient id="steel" x2="1"><stop stop-color="#252a35"/><stop offset=".5" stop-color="#626270"/><stop offset="1" stop-color="#242630"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#8d75bd" stop-opacity=".58"/><stop offset="1" stop-color="#655292" stop-opacity="0"/></radialGradient>
+    <linearGradient id="ground" x2="0" y2="1"><stop stop-color="#22232d"/><stop offset="1" stop-color="#0a0b10"/></linearGradient>
+  </defs>
+  <path fill="url(#stone)" d="M0 0h720v319H0z"/>
+  <path stroke="#a6a0b9" stroke-opacity=".13" stroke-width="6" d="M52 0v319m154-319v319m308-319v319m154-319v319M0 91h720m-720 117h720"/>
+  <path fill="#171922" stroke="#8c879a" stroke-opacity=".68" stroke-width="9" d="M226 27h268v297H226z"/>
+  <path fill="url(#steel)" stroke="#c2b5d2" stroke-opacity=".7" stroke-width="5" d="M250 49h220v275H250z"/>
+  <path stroke="#9290a0" stroke-opacity=".46" stroke-width="5" d="M269 68h182v236H269z"/>
+  <circle cx="360" cy="185" r="82" fill="#20222c" stroke="#b5a8c9" stroke-width="8"/>
+  <circle cx="360" cy="185" r="63" stroke="#756e83" stroke-width="7"/>
+  <circle cx="360" cy="185" r="43" stroke="#aaa0b4" stroke-opacity=".8" stroke-width="5"/>
+  <path stroke="#c5a773" stroke-linecap="round" stroke-width="8" d="M360 143v25m42 17h-25m-17 42v-25m-42-17h25"/>
+  <circle cx="360" cy="185" r="11" fill="#d7bd85"/>
+  <path fill="#37313f" stroke="#93839f" stroke-width="4" d="M93 76h74v154H93z"/>
+  <path fill="#8f80a1" fill-opacity=".5" d="M105 95h50v5h-50zm0 15h50v5h-50zm0 15h37v5h-37z"/>
+  <path fill="#312d3a" stroke="#8b8296" stroke-width="4" d="M553 81h74v149h-74z"/>
+  <circle cx="590" cy="142" r="25" stroke="#c7ad79" stroke-width="4"/>
+  <path stroke="#c7ad79" stroke-width="3" d="M590 118v48m-24-24h48m-41-17 34 34m0-34-34 34"/>
+  <ellipse cx="360" cy="220" rx="242" ry="174" fill="url(#glow)"/>
+  <path fill="url(#ground)" d="M0 319h720v101H0z"/>
+  <path stroke="#aaa0b4" stroke-opacity=".28" stroke-width="4" d="M0 348h720M143 320l-52 100m267-100v100m215-100 52 100"/>
+  <path fill="#a7a0b7" fill-opacity=".42" d="M185 82h8v155h-8zm342-8h8v163h-8z"/>
+</svg>
