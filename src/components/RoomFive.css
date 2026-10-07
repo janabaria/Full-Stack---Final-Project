@@ -1,0 +1,208 @@
+.room5-page-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #050508;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.room5-game-canvas {
+  position: relative;
+  width: 96vw;
+  height: 96vh;
+  max-width: 1920px;
+  aspect-ratio: 16 / 9;
+  background-image: url('../images/room5-bg.png');
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 12px;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.9);
+  filter: brightness(1.1); /* يزيل التعتيم الزائد ويظهر ألوان الصورة بوضوح تماماً مثل صورتك الأصلية */
+}
+
+.room5-home-link {
+  position: absolute;
+  z-index: 11;
+  top: 13px;
+  left: 14px;
+  padding: 8px 11px;
+  border: 1px solid rgba(192, 156, 229, .55);
+  border-radius: 4px;
+  color: #f1eafa;
+  background: rgba(14, 10, 25, .9);
+  font: 9px 'DM Mono', monospace;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.game-header {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(15, 12, 25, 0.9);
+  border: 1px solid #7000ff;
+  padding: 8px 24px;
+  border-radius: 30px;
+  z-index: 5;
+}
+
+.timer-box {
+  color: #ef4444;
+  font-family: monospace;
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.inventory-box {
+  color: #c084fc;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+/* الشريط السفلي للعناصر المطلوبة */
+.room5-bottom-bar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  background: rgba(15, 12, 25, 0.95);
+  border: 1px solid #7000ff;
+  padding: 10px 20px;
+  border-radius: 12px;
+  z-index: 5;
+}
+
+.bottom-slot {
+  background: #120e1c;
+  border: 1px dashed rgba(112, 0, 255, 0.6);
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: center;
+  color: #cbd5e1;
+  min-width: 130px;
+  font-size: 0.85rem;
+}
+
+.bottom-slot.found {
+  border-style: solid;
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.2);
+  color: #fff;
+}
+
+.bottom-slot strong {
+  display: block;
+  font-size: 0.85rem;
+  color: #fbbf24;
+  margin-top: 3px;
+}
+
+/* Hotspots */
+.hotspot-btn {
+  position: absolute;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.hotspot-btn:hover {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.15);
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+}
+
+
+/* تخصيص زر القفل على الباب ليغطي لوحة الأرقام فقط بدقة */
+.hotspot-door-r5 {
+  left: 44.5% !important;
+  top: 36% !important;
+  width: 7.5% !important;
+  height: 18% !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* تعديل مكان وزاوية الباب ليطابق الباب الخشبي الكبير في منتصف الصورة */
+
+/* نافذة القفل الرقمي */
+.room5-modal-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(18, 14, 28, 0.97);
+  color: #ffffff;
+  padding: 28px;
+  border-radius: 16px;
+  border: 1px solid #7000ff;
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.9);
+  text-align: center;
+  z-index: 10;
+  width: 380px;
+  backdrop-filter: blur(10px);
+}
+
+.room5-modal-overlay h3 {
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+  color: #c084fc;
+}
+
+.keypad-display {
+  background-color: #090a0f;
+  border: 1px solid #a855f7;
+  color: #22c55e;
+  font-family: monospace;
+  font-size: 1.8rem;
+  padding: 8px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  letter-spacing: 6px;
+  text-align: center;
+}
+
+.keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.keypad-btn {
+  background: #2a1b4e;
+  color: #fff;
+  border: 1px solid #7000ff;
+  padding: 10px;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.keypad-btn:hover {
+  background: #7000ff;
+}
+
+.room5-modal-close-btn {
+  padding: 8px 18px;
+  cursor: pointer;
+  background-color: #374151;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  margin-top: 10px;
+}

@@ -26,9 +26,9 @@ npm run lint
 ## Game flow
 
 - `/login` appears before Home when there is no local player session.
-- Home shows the four-room progression and keeps each room unavailable until the previous room is completed.
-- Rooms are available at `/rooms/1` through `/rooms/4`; attempts to open a locked room URL return to Home.
-- Completing Room 04 opens the final escape screen at `/game-complete`.
+- Home shows the five-room progression in order: Rooms 1–3, the Mysterious Study as Room 4 (`/rooms/4`), then the Last Lock as Room 5 (`/rooms/5`).
+- Each room remains unavailable until the previous room in the campaign is completed; attempts to open a locked room URL return to Home.
+- Completing the Last Lock opens the final escape screen at `/game-complete`.
 - Player session and progress are stored separately per username in browser `localStorage`.
 
 ## Supabase backend setup

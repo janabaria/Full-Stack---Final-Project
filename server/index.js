@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 
 const app = express()
+const roomOrder = [1, 2, 3, 4, 5]
 const port = Number(process.env.PORT) || 3001
 const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
   .split(',')
@@ -75,23 +76,23 @@ function validateProgress(value) {
 
   if (!integerInRange(score, 0, 10_000_000)) return null
   if (!integerInRange(hintsUsed, 0, 100_000)) return null
-  if (!integerInRange(currentRoom, 1, 4)) return null
+  if (!integerInRange(currentRoom, 1, roomOrder.length)) return null
   if (typeof gameStarted !== 'boolean' || !Array.isArray(completedRooms)) return null
 
   const completed = [...new Set(completedRooms)]
   if (
-    completed.some((room) => !integerInRange(room, 1, 4)) ||
+    completed.some((room) => !roomOrder.includes(room)) ||
     completed.length !== completedRooms.length
   ) {
     return null
   }
 
-  completed.sort((left, right) => left - right)
-  if (completed.some((room, index) => room !== index + 1)) return null
+  completed.sort((left, right) => roomOrder.indexOf(left) - roomOrder.indexOf(right))
+  if (completed.some((room, index) => room !== roomOrder[index])) return null
 
   const unlockedRooms = Array.from(
-    { length: Math.min(completed.length + 1, 4) },
-    (_, index) => index + 1,
+    { length: Math.min(completed.length + 1, roomOrder.length) },
+    (_, index) => roomOrder[index],
   )
 
   if (currentRoom > unlockedRooms.length) return null
@@ -103,7 +104,7 @@ function validateProgress(value) {
     score,
     hintsUsed,
     gameStarted,
-    gameCompleted: completed.length === 4,
+    gameCompleted: completed.length === roomOrder.length,
   }
 }
 

@@ -87,7 +87,7 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
         <div className="vault-floor" />
         <div className="final-case">
           <div className="final-case-heading">
-            <span className="final-room-kicker">ROOM 04 <i /> THE LAST LOCK</span>
+            <span className="final-room-kicker">ROOM 05 <i /> THE LAST LOCK</span>
             <h1>One final truth.</h1>
             <p>The vault remembers every clue. Enter its four-digit code and make your escape.</p>
           </div>
@@ -126,7 +126,7 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
         <div className="final-result-backdrop">
           <section className="final-result-card" role="dialog" aria-modal="true" aria-labelledby="final-result-title">
             <span className="result-star">{complete ? '✦' : '00:00'}</span>
-            <p>{complete ? 'ALL FOUR ROOMS CLEARED' : 'TIME EXPIRED'}</p>
+            <p>{complete ? 'ALL FIVE ROOMS CLEARED' : 'TIME EXPIRED'}</p>
             <h2 id="final-result-title">{complete ? 'YOU ESCAPED.' : 'THE VAULT REMAINS SEALED.'}</h2>
             <span className="result-total">{complete ? score.toLocaleString() : 'The clock ran out.'}{complete && ' PTS'}</span>
             {complete ? (
