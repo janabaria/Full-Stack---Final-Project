@@ -686,6 +686,23 @@ a:focus-visible {
   font-size: 12px;
 }
 
+.storage-warning button {
+  margin-left: 12px;
+  padding: 6px 10px;
+  color: #f4f0ec;
+  background: rgba(230, 173, 173, .1);
+  border: 1px solid rgba(230, 173, 173, .45);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 10px;
+  letter-spacing: .08em;
+}
+
+.storage-warning button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
 .room3-continue-btn {
   margin: 12px auto 0;
   padding: 10px 15px;

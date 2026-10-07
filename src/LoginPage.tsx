@@ -73,10 +73,10 @@ function LoginPage({ onLogin }: LoginPageProps) {
               <span>UNLOCK YOUR SESSION</span><i aria-hidden="true">→</i>
             </button>
           </form>
-          <div className="login-card-foot"><span>🔒</span> YOUR PROGRESS IS SAVED ON THIS DEVICE</div>
+          <div className="login-card-foot"><span>🔒</span> LOCAL BACKUP · CLOUD SYNC WHEN CONFIGURED</div>
         </section>
       </div>
-      <footer className="login-footer"><span>ESCAPE ROOM ONLINE</span><span>DEMO SIGN-IN · PROGRESS SAVED ON THIS DEVICE</span></footer>
+      <footer className="login-footer"><span>ESCAPE ROOM ONLINE</span><span>DEMO SIGN-IN · LOCAL BACKUP + OPTIONAL CLOUD SYNC</span></footer>
     </main>
   )
 }

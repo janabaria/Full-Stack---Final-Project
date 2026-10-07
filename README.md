@@ -6,6 +6,13 @@ A cinematic, four-room React escape-room game. Players sign in to a local sessio
 
 ```sh
 npm ci
+copy .env.example .env
+npm run dev:server
+```
+
+In a second terminal, start the Vite frontend:
+
+```sh
 npm run dev
 ```
 
@@ -24,8 +31,24 @@ npm run lint
 - Completing Room 04 opens the final escape screen at `/game-complete`.
 - Player session and progress are stored separately per username in browser `localStorage`.
 
-## Authentication and persistence
+## Supabase backend setup
 
-There is no backend or database in this project. Sign-in is a **local demo session**: any non-empty username/email and password creates a session, and the password is not stored. The route guard prevents casual navigation to Home or locked rooms, but browser storage is controlled by the player and is not a security boundary. A production online game should use server-verified sessions and enforce room unlocks and progress on the backend.
+1. Create a Supabase project.
+2. In the Supabase SQL Editor, run [`supabase/schema.sql`](./supabase/schema.sql).
+3. Copy `.env.example` to `.env` and fill in `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from the Supabase project settings.
+4. Keep the service-role key in `.env` on the server only. Never add it to a `VITE_*` variable or browser code.
+5. Run `npm run dev:server` and `npm run dev` in separate terminals. The Vite development server proxies `/api` requests to Express.
 
-The room-completion callbacks in `src/App.tsx` are the integration points for replacing local progress storage with API/database calls.
+The Express API provides:
+
+- `GET /api/health` — backend health check.
+- `GET /api/progress/:username` and `PUT /api/progress/:username` — load and save campaign progress and score.
+- `GET /api/leaderboard` — list the top 10 completed runs.
+
+Progress is still written to browser storage as a fallback. When the backend is available, it loads the server copy on sign-in and synchronizes changes after a brief delay. The leaderboard reads completed runs from Supabase.
+
+## Authentication and security
+
+Sign-in remains a **local demo session**: any non-empty username/email and password creates a session, and the password is not stored. The backend identifies saved data by normalized username, so users can impersonate another username and alter scores in this demo setup. Server-side validation protects the database shape, but it does not prove who owns a score.
+
+Before exposing this game publicly or treating the leaderboard as trusted, add real authentication (for example Supabase Auth), verify the user's access token in Express, key progress by the verified auth user ID, and enforce score/progression rules server-side. Row-level security is enabled on the table; the Express service-role key bypasses it and must remain private.
