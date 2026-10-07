@@ -1,5 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
+import { getLeaderboard, getPlayerProgress, savePlayerProgress, type LeaderboardEntry } from './api'
 import LoginPage from './LoginPage'
 import RoomOne from './RoomOne'
 import { Room3 } from './components/Room3'
@@ -463,6 +464,11 @@ function App() {
   const [progress, setProgress] = useState<GameProgress>(() => loadProgress(player?.username))
   const [requestedRoute, setRequestedRoute] = useState(() => window.location.pathname || '/')
   const [storageWarning, setStorageWarning] = useState('')
+  const [hydratedUsername, setHydratedUsername] = useState<string | null>(null)
+  const [isRetryingCloudSync, setIsRetryingCloudSync] = useState(false)
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([])
+  const [leaderboardError, setLeaderboardError] = useState('')
+  const playerKey = player?.username.toLocaleLowerCase() ?? null
   const roomMatch = requestedRoute.match(/^\/rooms\/([1-4])(?:\/|$)/)
   const isLockedRoom = roomMatch
     ? !progress.unlockedRooms.includes(Number(roomMatch[1]))
@@ -523,6 +529,80 @@ function App() {
     }
   }, [player, progress])
 
+  useEffect(() => {
+    if (!playerKey) return
+
+    let active = true
+    getPlayerProgress(playerKey)
+      .then((remoteProgress) => {
+        if (!active) return
+        if (remoteProgress) setProgress(remoteProgress)
+        setHydratedUsername(playerKey)
+      })
+      .catch((error: unknown) => {
+        console.error('Could not load cloud game progress.', error)
+        if (!active) return
+        const reason = error instanceof Error ? `: ${error.message}` : ''
+        setStorageWarning(`Cloud sync is unavailable${reason}. Progress is being kept on this device.`)
+        setHydratedUsername(playerKey)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [playerKey])
+
+  useEffect(() => {
+    if (!player || !playerKey || hydratedUsername !== playerKey) return
+
+    const saveTimer = window.setTimeout(() => {
+      savePlayerProgress(playerKey, player.username, progress)
+        .then(() => {
+          setStorageWarning((current) =>
+            current.startsWith('Cloud sync is unavailable') ? '' : current,
+          )
+        })
+        .catch((error: unknown) => {
+          console.error('Could not save cloud game progress.', error)
+          const reason = error instanceof Error ? `: ${error.message}` : ''
+          setStorageWarning(`Cloud sync is unavailable${reason}. Progress is being kept on this device.`)
+        })
+    }, 500)
+
+    return () => window.clearTimeout(saveTimer)
+  }, [hydratedUsername, player, playerKey, progress])
+
+  useEffect(() => {
+    if (route !== '/leaderboard') return
+
+    let active = true
+    const latestProgress = player && playerKey
+      ? savePlayerProgress(playerKey, player.username, progress)
+      : Promise.resolve()
+    latestProgress
+      .then(() => getLeaderboard())
+      .then((entries) => {
+        if (active) {
+          setLeaderboardEntries(entries)
+          setLeaderboardError('')
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('Could not load the leaderboard.', error)
+        if (active) {
+          setLeaderboardError(
+            error instanceof Error
+              ? error.message
+              : 'Leaderboard is currently unavailable. Please try again later.',
+          )
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [player, playerKey, progress, route])
+
   const continueTarget = useMemo(() => getContinueTarget(progress), [progress])
 
   const completeRoom = useCallback((room: number, finalScore: number, usedHints: number) => {
@@ -574,6 +654,7 @@ function App() {
     try {
       window.localStorage.setItem(PLAYER_KEY, JSON.stringify(nextPlayer))
       setProgress(loadProgress(username))
+      setHydratedUsername(null)
       setStorageWarning('')
       setPlayer(nextPlayer)
       navigate('/')
@@ -587,6 +668,7 @@ function App() {
   const handleLogout = useCallback(() => {
     try {
       window.localStorage.removeItem(PLAYER_KEY)
+      setHydratedUsername(null)
       setPlayer(null)
       navigate('/login')
     } catch (error) {
@@ -594,6 +676,22 @@ function App() {
       setStorageWarning('Could not sign out. Check your browser storage settings.')
     }
   }, [navigate])
+
+  const handleRetryCloudSync = useCallback(async () => {
+    if (!player || !playerKey) return
+
+    setIsRetryingCloudSync(true)
+    try {
+      await savePlayerProgress(playerKey, player.username, progress)
+      setStorageWarning('')
+    } catch (error) {
+      console.error('Could not retry cloud progress sync.', error)
+      const reason = error instanceof Error ? `: ${error.message}` : ''
+      setStorageWarning(`Cloud sync is still unavailable${reason}. Progress is being kept on this device.`)
+    } finally {
+      setIsRetryingCloudSync(false)
+    }
+  }, [player, playerKey, progress])
 
   const handleRoomOneEnter = useCallback(() => {
     if (!progress.completedRooms.includes(1)) {
@@ -733,7 +831,14 @@ function App() {
             </div>
           </section>
 
-          {storageWarning && <p className="storage-warning" role="alert">{storageWarning}</p>}
+          {storageWarning && (
+            <div className="storage-warning" role="alert">
+              <span>{storageWarning}</span>
+              <button type="button" onClick={handleRetryCloudSync} disabled={isRetryingCloudSync}>
+                {isRetryingCloudSync ? 'RETRYING…' : 'RETRY CLOUD SYNC'}
+              </button>
+            </div>
+          )}
 
           <section className="progression-section" aria-labelledby="progression-title">
             <div className="progression-heading">
@@ -833,13 +938,9 @@ function App() {
           <div className="final-panel leaderboard-panel">
             <p className="eyebrow-header">LEADERBOARD</p>
             <h1>Top operators</h1>
+            {leaderboardError && <p className="storage-warning" role="alert">{leaderboardError}</p>}
             <ol className="leaderboard-list">
-              {[
-                { name: 'Player 01', score: progress.score },
-                { name: 'Astra', score: 4120 },
-                { name: 'Nox', score: 3850 },
-                { name: 'Echo', score: 3300 },
-              ].map((entry, index) => (
+              {leaderboardEntries.map((entry, index) => (
                 <li key={entry.name}>
                   <span>#{index + 1}</span>
                   <strong>{entry.name}</strong>
@@ -847,6 +948,9 @@ function App() {
                 </li>
               ))}
             </ol>
+            {!leaderboardError && leaderboardEntries.length === 0 && (
+              <p>No completed runs are on the leaderboard yet.</p>
+            )}
             <button className="primary-button" type="button" onClick={() => navigate('/')}>
               BACK HOME
             </button>
