@@ -648,6 +648,11 @@ function App() {
     completeRoom(3, details.score, details.hintsUsed)
   }, [completeRoom])
 
+
+    const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    completeRoom(4, details.score, details.hintsUsed)
+  }, [completeRoom])
+
   const handleLogin = useCallback((username: string) => {
     const nextPlayer = { username }
     try {
@@ -716,22 +721,30 @@ function App() {
     navigate('/rooms/4')
   }, [navigate, progress.completedRooms])
 
-  const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-    completeRoom(4, details.score, details.hintsUsed)
-  }, [completeRoom])
+  // const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+  //   completeRoom(4, details.score, details.hintsUsed)
+  // }, [completeRoom])
+
+    const handleRoomFourEnter = useCallback(() => {
+    if (!progress.completedRooms.includes(4)) {
+      navigate('/')
+      return
+    }
+    navigate('/rooms/5')
+  }, [navigate, progress.completedRooms])
 
   const handleRoomFiveComplete = useCallback((details: { score: number; hintsUsed: number }) => {
     completeRoom(5, details.score, details.hintsUsed)
     navigate('/game-complete')
   }, [completeRoom, navigate])
 
-  const handleFinishCampaign = useCallback(() => {
-    if (!progress.completedRooms.includes(5)) {
-      navigate('/')
-      return
-    }
-    navigate('/game-complete')
-  }, [navigate, progress.completedRooms])
+  // const handleFinishCampaign = useCallback(() => {
+  //   if (!progress.completedRooms.includes(5)) {
+  //     navigate('/')
+  //     return
+  //   }
+  //   navigate('/game-complete')
+  // }, [navigate, progress.completedRooms])
 
   const startGame = useCallback(() => {
     setProgress((current) => ({
@@ -1027,7 +1040,7 @@ function App() {
         <RoomFive
           initialScore={progress.score}
           onRoomComplete={handleRoomFourComplete}
-          onEnterFinalRoom={handleFinishCampaign}
+          onEnterFinalRoom={handleRoomFourEnter}
           onBackHome={() => navigate('/')}
         />
       )
