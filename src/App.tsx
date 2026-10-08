@@ -7,6 +7,19 @@ import { Room3 } from './components/Room3'
 import FinalRoom from './FinalRoom'
 import roomThreeImage from './images/ROOM3.png'
 import { RoomFive } from './components/RoomFive'
+import AudioControls from './audio/AudioControls'
+import { LanguageSwitcher } from './LanguageSwitcher'
+import { useI18n } from './useI18n'
+import { authenticateLocalPlayer } from './localAuth'
+import {
+  playFailureSound,
+  playRecordCelebration,
+  playSuccessSound,
+  playUiSound,
+  playVictorySound,
+  setMusicTrack,
+  unlockAudio,
+} from './audio/audioEngine'
 
 type Choice = {
   text: string
@@ -177,6 +190,15 @@ function getContinueTarget(progress: GameProgress): string {
   return ROOM_CONFIG[progress.currentRoom - 1]?.path ?? '/'
 }
 
+function getLocalizedStorageWarning(message: string, t: (text: string, values?: Record<string, string | number>) => string) {
+  const unavailable = message.match(/^Cloud sync (is|is still) unavailable(.*)\. Progress is being kept on this device\.$/)
+  if (!unavailable) return t(message)
+  const key = unavailable[1] === 'still'
+    ? 'Cloud sync is still unavailable{reason}. Progress is being kept on this device.'
+    : 'Cloud sync is unavailable{reason}. Progress is being kept on this device.'
+  return t(key, { reason: unavailable[2] })
+}
+
 export function RoomTwoGame({
   initialScore = 750,
   onEnterRoomThree,
@@ -188,6 +210,7 @@ export function RoomTwoGame({
   onBackHome?: () => void
   onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
 }) {
+  const { t } = useI18n()
   const [questionIndex, setQuestionIndex] = useState(0)
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null)
   const [answered, setAnswered] = useState(false)
@@ -252,7 +275,7 @@ export function RoomTwoGame({
         <a className="brand" href="/" onClick={(event) => {
           event.preventDefault()
           onBackHome?.()
-        }} aria-label="Escape Room Online home">
+        }} aria-label={t('Escape Room Online home')}>
           <span className="brand-mark" aria-hidden="true">E</span>
           <span>ESCAPE<span className="brand-light">ROOM</span></span>
         </a>
@@ -260,13 +283,13 @@ export function RoomTwoGame({
           <a href="/" onClick={(event) => {
             event.preventDefault()
             onBackHome?.()
-          }}>Rooms</a>
-          <a href="#room">Leaderboard</a>
-          <a href="#room">How to play</a>
+          }}>{t('Rooms')}</a>
+          <a href="#room">{t('Leaderboard')}</a>
+          <a href="#room">{t('How to play')}</a>
         </nav>
         <div className="player-chip">
           <span className="online-dot" />
-          <span>PLAYER 01</span>
+          <span>{t('PLAYER 01')}</span>
           <span className="player-avatar" aria-hidden="true">H</span>
         </div>
       </header>
@@ -274,23 +297,23 @@ export function RoomTwoGame({
       <section className="game-content" id="room">
         <div className="room-heading">
           <div>
-            <a className="back-link" href="#room"><span aria-hidden="true">←</span> ALL ROOMS</a>
+            <a className="back-link" href="#room"><span aria-hidden="true">←</span> {t('← ALL ROOMS')}</a>
             <div className="title-row">
               <div>
-                <div className="eyebrow"><span className="eyebrow-line" /> ROOM 02 <span className="eyebrow-dot">/</span> THE INTERVIEW</div>
-                <h1>The Interview</h1>
-                <p className="room-subtitle">Every answer brings you closer to the exit.</p>
+                <div className="eyebrow"><span className="eyebrow-line" /> {t('ROOM 02')} <span className="eyebrow-dot">/</span> {t('THE INTERVIEW')}</div>
+                <h1>{t('THE INTERVIEW')}</h1>
+                <p className="room-subtitle">{t('Every answer brings you closer to the exit.')}</p>
               </div>
             </div>
           </div>
-          <div className="room-status"><span className="status-dot" /> ROOM IN PROGRESS</div>
+          <div className="room-status"><span className="status-dot" /> {t('ROOM IN PROGRESS')}</div>
         </div>
 
         <div className="game-grid">
-          <section className="office-scene" aria-label="A mysterious interview room">
+          <section className="office-scene" aria-label={t('A mysterious interview room')}>
             <div className="scene-topline">
-              <span><span className="live-indicator" /> LIVE SCENE</span>
-              <span className="scene-coordinate">NIGHT SHIFT <span>·</span> 09:41 PM</span>
+              <span><span className="live-indicator" /> {t('LIVE SCENE')}</span>
+              <span className="scene-coordinate">{t('NIGHT SHIFT')} <span>·</span> 09:41 PM</span>
             </div>
             <div className="window-frame">
               <div className="window-glow" />
@@ -329,7 +352,7 @@ export function RoomTwoGame({
                 <span className="lapel lapel-left" />
                 <span className="lapel lapel-right" />
               </div>
-              <div className="person-label"><span className="label-dot" /> THE INTERVIEWER</div>
+              <div className="person-label"><span className="label-dot" /> {t('THE INTERVIEWER')}</div>
             </div>
             <div className="desk">
               <div className="desk-edge" />
@@ -340,7 +363,7 @@ export function RoomTwoGame({
             </div>
             <div className="scene-caption">
               <span className="caption-icon">◈</span>
-              <span>“Take your time. The right answer is already in you.”</span>
+              <span>{t('“Take your time. The right answer is already in you.”')}</span>
             </div>
             <div className="scene-floorshine" />
           </section>
@@ -348,10 +371,10 @@ export function RoomTwoGame({
           <aside className="room-sidebar">
             <div className="sidebar-panel">
               <div className="score-card">
-                <span className="progress-label">TOTAL SCORE</span>
-                <strong>{score.toLocaleString()} PTS</strong>
+                <span className="progress-label">{t('TOTAL SCORE')}</span>
+                <strong>{score.toLocaleString()} {t('PTS')}</strong>
               </div>
-              <div className="progress-track" aria-label={`${Math.round((correctCount / questions.length) * 100)}% complete`}>
+              <div className="progress-track" aria-label={t('{percent}% complete', { percent: Math.round((correctCount / questions.length) * 100) })}>
                 <span style={{ width: `${(correctCount / questions.length) * 100}%` }} />
               </div>
               <div className="step-list">
@@ -361,23 +384,23 @@ export function RoomTwoGame({
                   return (
                     <div className={`step-item${isSolved ? ' is-solved' : ''}${isCurrent ? ' is-current' : ''}`} key={item.category}>
                       <span className="step-icon">{isSolved ? '✓' : String(index + 1).padStart(2, '0')}</span>
-                      <span className="step-name">{item.category}</span>
-                      <span className="step-state">{isSolved ? 'SOLVED' : isCurrent ? 'IN PLAY' : 'LOCKED'}</span>
+                      <span className="step-name">{t(item.category)}</span>
+                      <span className="step-state">{t(isSolved ? 'SOLVED' : isCurrent ? 'IN PLAY' : 'LOCKED')}</span>
                     </div>
                   )
                 })}
               </div>
               <div className="divider" />
-              <div className="password-title"><span>▣</span> PASSWORD FRAGMENTS</div>
-              <p className="password-caption">Collect every fragment to unlock the door.</p>
-              <div className="password-slots" aria-label={`Password collected: ${password || 'none yet'}`}>
+              <div className="password-title"><span>▣</span> {t('PASSWORD FRAGMENTS')}</div>
+              <p className="password-caption">{t('Collect every fragment to unlock the door.')}</p>
+              <div className="password-slots" aria-label={t('Password collected: {password}', { password: password || t('none yet') })}>
                 {questions.map((item, index) => (
                   <span className={`password-slot${index < fragments.length ? ' is-filled' : ''}`} key={item.fragment}>
                     {fragments[index] ?? '•••'}
                   </span>
                 ))}
               </div>
-              <div className="room-tip"><span className="tip-icon">✧</span><span>Think clearly. A great answer is honest, thoughtful, and specific.</span></div>
+              <div className="room-tip"><span className="tip-icon">✧</span><span>{t('Think clearly. A great answer is honest, thoughtful, and specific.')}</span></div>
             </div>
           </aside>
         </div>
@@ -387,12 +410,12 @@ export function RoomTwoGame({
             <>
               <div className="question-main">
                 <div className="question-meta">
-                  <span className="question-number">QUESTION {String(questionIndex + 1).padStart(2, '0')}</span>
+                  <span className="question-number">{t('QUESTION')} {String(questionIndex + 1).padStart(2, '0')}</span>
                   <span className="meta-divider" />
-                  <span className="question-category">{question.category}</span>
+                  <span className="question-category">{t(question.category)}</span>
                 </div>
-                <h2>{question.prompt}</h2>
-                <div className="answer-list" role="group" aria-label="Choose your answer">
+                <h2>{t(question.prompt)}</h2>
+                <div className="answer-list" role="group" aria-label={t('CHOOSE YOUR ANSWER')}>
                   {question.choices.map((choice, index) => {
                     const isSelected = selectedChoice === index
                     const isCorrect = answered && choice.correct
@@ -410,32 +433,32 @@ export function RoomTwoGame({
                         }}
                       >
                         <span className="choice-marker">{String.fromCharCode(65 + index)}</span>
-                        <span className="choice-text">{choice.text}</span>
+                        <span className="choice-text">{t(choice.text)}</span>
                         <span className="choice-check">{isCorrect ? '✓' : isWrong ? '×' : '↗'}</span>
                       </button>
                     )
                   })}
                 </div>
                 {feedback === 'incorrect' && (
-                  <p className="feedback feedback-error"><span>↻</span> Not quite. Try another response, or use a hint to rethink what the interviewer is looking for.</p>
+                  <p className="feedback feedback-error"><span>↻</span> {t('Not quite. Try another response, or use a hint to rethink what the interviewer is looking for.')}</p>
                 )}
                 {feedback === 'correct' && (
-                  <p className="feedback feedback-success"><span>✦</span> That’s a thoughtful answer. You found a password fragment: <strong>{question.fragment}</strong></p>
+                  <p className="feedback feedback-success"><span>✦</span> {t('That’s a thoughtful answer. You found a password fragment:')} <strong>{question.fragment}</strong></p>
                 )}
               </div>
               <div className="question-footer">
                 <button className="hint-button" type="button" onClick={revealHint} aria-expanded={showHint}>
-                  <span className="bulb-icon">✧</span> {showHint ? 'HIDE HINT' : 'NEED A HINT?'}
+                  <span className="bulb-icon">✧</span> {t(showHint ? 'HIDE HINT' : 'NEED A HINT?')}
                 </button>
-                {showHint && <p className="hint-message">{question.hint}</p>}
+                {showHint && <p className="hint-message">{t(question.hint)}</p>}
                 <div className="footer-actions">
                   {!answered ? (
                     <button className="primary-button" type="button" onClick={submitAnswer} disabled={selectedChoice === null}>
-                      SUBMIT ANSWER <span aria-hidden="true">→</span>
+                      {t('SUBMIT ANSWER')} <span aria-hidden="true">→</span>
                     </button>
                   ) : (
                     <button className="primary-button" type="button" onClick={continueGame}>
-                      {questionIndex === questions.length - 1 ? 'UNLOCK THE EXIT' : 'NEXT QUESTION'} <span aria-hidden="true">→</span>
+                      {t(questionIndex === questions.length - 1 ? 'UNLOCK THE EXIT' : 'NEXT QUESTION')} <span aria-hidden="true">→</span>
                     </button>
                   )}
                 </div>
@@ -444,17 +467,17 @@ export function RoomTwoGame({
           ) : (
             <div className="completion-panel">
               <span className="completion-spark">✦</span>
-              <div className="question-meta"><span className="question-number">ROOM COMPLETE</span></div>
-              <h2>You nailed the interview.</h2>
-              <p>You collected every fragment and unlocked the next room.</p>
-              <div className="completion-password"><span>EXIT CODE</span><strong>{questions.map((item) => item.fragment).join('')}</strong><span className="completion-unlocked">ROOM 03 UNLOCKED ✓</span></div>
-              <button className="primary-button" type="button" onClick={onEnterRoomThree ?? (() => undefined)}>ENTER ROOM 03 <span aria-hidden="true">→</span></button>
+              <div className="question-meta"><span className="question-number">{t('ROOM COMPLETE')}</span></div>
+              <h2>{t('You nailed the interview.')}</h2>
+              <p>{t('You collected every fragment and unlocked the next room.')}</p>
+              <div className="completion-password"><span>{t('EXIT CODE')}</span><strong>{questions.map((item) => item.fragment).join('')}</strong><span className="completion-unlocked">{t('ROOM 03 UNLOCKED ✓')}</span></div>
+              <button className="primary-button" type="button" onClick={onEnterRoomThree ?? (() => undefined)}>{t('ENTER ROOM 03')} <span aria-hidden="true">→</span></button>
             </div>
           )}
         </section>
         <footer className="game-footer">
-          <span>ESCAPE ROOM ONLINE <span className="footer-separator">/</span> ROOM 02</span>
-          <span><span className="footer-lock">▣</span> ROOM 02 · THE INTERVIEW</span>
+          <span>ESCAPE ROOM ONLINE <span className="footer-separator">/</span> {t('ROOM 02')}</span>
+          <span><span className="footer-lock">▣</span> {t('ROOM 02 · THE INTERVIEW')}</span>
         </footer>
       </section>
     </main>
@@ -462,6 +485,7 @@ export function RoomTwoGame({
 }
 
 function App() {
+  const { t } = useI18n()
   const [player, setPlayer] = useState<PlayerSession | null>(() => loadPlayer())
   const [progress, setProgress] = useState<GameProgress>(() => loadProgress(player?.username))
   const [requestedRoute, setRequestedRoute] = useState(() => window.location.pathname || '/')
@@ -503,21 +527,41 @@ function App() {
 
   useEffect(() => {
     const titleByRoute: Record<string, string> = {
-      '/login': 'Escape Room Online | Login',
-      '/': 'Escape Room Online | Home',
-      '/rooms': 'Escape Room Online | Mission Control',
-      '/leaderboard': 'Escape Room Online | Leaderboard',
-      '/game-complete': 'Escape Room Online — Final Escape',
-      '/rooms/5': 'Escape Room Online — Final Room',
+      '/login': t('Escape Room Online | Login'),
+      '/': t('Escape Room Online | Home'),
+      '/rooms': t('Escape Room Online | Mission Control'),
+      '/leaderboard': t('Escape Room Online | Leaderboard'),
+      '/game-complete': t('Escape Room Online — Final Escape'),
+      '/rooms/5': t('Escape Room Online — Final Room'),
     }
 
     const roomMatch = route.match(/^\/rooms\/([1-5])(?:\/|$)/)
     if (roomMatch) {
-      document.title = `Escape Room Online — Room 0${roomMatch[1]}`
+      document.title = t('Escape Room Online — Room {room}', { room: roomMatch[1] })
       return
     }
 
-    document.title = titleByRoute[route] ?? 'Escape Room Online'
+    document.title = titleByRoute[route] ?? t('Escape Room Online')
+  }, [route, t])
+
+  useEffect(() => {
+    const roomMatch = route.match(/^\/rooms\/([1-5])(?:\/|$)/)
+    const trackByRoute = {
+      '/login': 'home',
+      '/': 'home',
+      '/rooms': 'home',
+      '/rooms/1': 'room-1',
+      '/rooms/2': 'room-2',
+      '/rooms/3': 'room-3',
+      '/rooms/4': 'room-4',
+      '/rooms/5': 'room-5',
+      '/game-complete': 'victory',
+      '/leaderboard': 'home',
+    } as const
+    const track = roomMatch
+      ? trackByRoute[`/rooms/${roomMatch[1]}` as keyof typeof trackByRoute]
+      : trackByRoute[route as keyof typeof trackByRoute] ?? 'home'
+    setMusicTrack(track)
   }, [route])
 
   useEffect(() => {
@@ -637,35 +681,44 @@ function App() {
   }, [])
 
   const handleRoomOneComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    playSuccessSound()
     completeRoom(1, details.score, details.hintsUsed)
   }, [completeRoom])
 
   const handleRoomTwoComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    playSuccessSound()
     completeRoom(2, details.score, details.hintsUsed)
   }, [completeRoom])
 
   const handleRoomThreeComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    playSuccessSound()
     completeRoom(3, details.score, details.hintsUsed)
   }, [completeRoom])
 
 
     const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    playSuccessSound()
     completeRoom(4, details.score, details.hintsUsed)
   }, [completeRoom])
 
-  const handleLogin = useCallback((username: string) => {
+    const handleRoomGameOver = useCallback(() => {
+      playFailureSound()
+    }, [])
+
+  const handleLogin = useCallback(async (username: string, password: string) => {
     const nextPlayer = { username }
     try {
+      await authenticateLocalPlayer(username, password)
       window.localStorage.setItem(PLAYER_KEY, JSON.stringify(nextPlayer))
       setProgress(loadProgress(username))
       setHydratedUsername(null)
       setStorageWarning('')
       setPlayer(nextPlayer)
       navigate('/')
-      return true
     } catch (error) {
+      if (error instanceof Error) throw error
       console.error('Could not create the local player session.', error)
-      return false
+      throw new Error('Your session could not be saved. Check your browser storage and try again.')
     }
   }, [navigate])
 
@@ -734,9 +787,31 @@ function App() {
   }, [navigate, progress.completedRooms])
 
   const handleRoomFiveComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    playVictorySound()
+    const previousBestKey = `escape-room-high-score:${playerKey ?? 'guest'}`
+    let previousBest = 0
+    try {
+      previousBest = Number(window.localStorage.getItem(previousBestKey)) || 0
+      window.localStorage.setItem(previousBestKey, String(Math.max(previousBest, details.score)))
+    } catch (error) {
+      console.error('Could not update the local high score.', error)
+    }
+
+    getLeaderboard()
+      .then((entries) => {
+        const leaderboardBest = entries[0]?.score ?? 0
+        if (details.score > Math.max(previousBest, leaderboardBest)) {
+          playRecordCelebration()
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('Could not check the leaderboard record.', error)
+        if (details.score > previousBest) playRecordCelebration()
+      })
+
     completeRoom(5, details.score, details.hintsUsed)
     navigate('/game-complete')
-  }, [completeRoom, navigate])
+  }, [completeRoom, navigate, playerKey])
 
   // const handleFinishCampaign = useCallback(() => {
   //   if (!progress.completedRooms.includes(5)) {
@@ -765,24 +840,24 @@ function App() {
       <header className="app-header">
         <div>
           <p className="eyebrow-header">ESCAPE ROOM ONLINE</p>
-          <h1>Global mission control</h1>
+          <h1>{t('Global mission control')}</h1>
         </div>
         <div className="header-actions">
           <button className="ghost-button" type="button" onClick={() => navigate('/')}>
-            HOME
+            {t('HOME')}
           </button>
           <button className="primary-button small" type="button" onClick={() => navigate(continueTarget)}>
-            CONTINUE GAME
+            {t('CONTINUE GAME')}
           </button>
         </div>
       </header>
 
       <section className="hero-panel">
         <div>
-          <p className="eyebrow-header">CURRENT STATUS</p>
-          <h2>Room progression and campaign summary</h2>
+          <p className="eyebrow-header">{t('CURRENT STATUS')}</p>
+          <h2>{t('Room progression and campaign summary')}</h2>
         </div>
-        <div className="status-badge">{progress.gameCompleted ? 'COMPLETED' : 'IN PROGRESS'}</div>
+        <div className="status-badge">{t(progress.gameCompleted ? 'COMPLETED' : 'IN PROGRESS')}</div>
       </section>
 
       <div className="room-grid">
@@ -802,16 +877,20 @@ function App() {
               style={room.id === 3 ? {
                 backgroundImage: `linear-gradient(180deg, rgba(8, 8, 16, .18), rgba(8, 8, 16, .96)), url(${roomThreeImage})`,
               } : undefined}
-              aria-label={`Room ${room.id}: ${room.name}. ${isCompleted ? 'Completed' : isUnlocked ? 'Unlocked' : `Locked. Complete room ${previousRoom?.id} to unlock.`}`}
+              aria-label={t('ROOM {room}: {name}. {status}', {
+                room: room.id,
+                name: t(room.name),
+                status: t(isCompleted ? 'COMPLETED' : isUnlocked ? 'UNLOCKED' : 'LOCKED'),
+              })}
             >
               <span className="room-card-art" aria-hidden="true" />
-              <span className="card-kicker">ROOM 0{room.id}</span>
-              <h3>{room.name}</h3>
-              <p className="room-card-description">{room.description}</p>
+              <span className="card-kicker">{t('ROOM 0{room}', { room: room.id })}</span>
+              <h3>{t(room.name)}</h3>
+              <p className="room-card-description">{t(room.description)}</p>
               <div className="room-card-state">
-                {isCompleted && <span>✓ COMPLETED</span>}
-                {!isCompleted && isUnlocked && <span>◇ UNLOCKED <b>GO TO ROOM {room.id} →</b></span>}
-                {!isCompleted && !isUnlocked && <span>⌑ LOCKED — COMPLETE ROOM {previousRoom?.id} TO UNLOCK</span>}
+                {isCompleted && <span>{t('✓ COMPLETED')}</span>}
+                {!isCompleted && isUnlocked && <span>◇ {t('UNLOCKED')} <b>{t('GO TO ROOM {room}', { room: room.id })} →</b></span>}
+                {!isCompleted && !isUnlocked && <span>{t('⌑ LOCKED — COMPLETE ROOM {previous} TO UNLOCK', { previous: previousRoom?.id ?? '' })}</span>}
               </div>
             </button>
           )
@@ -828,44 +907,44 @@ function App() {
             <div className="home-wordmark">
               <span className="home-brand-mark">E</span>
               <div>
-                <p className="eyebrow-header">YOUR INVESTIGATION BEGINS</p>
-                <h1>Escape Room Online</h1>
+                <p className="eyebrow-header">{t('YOUR INVESTIGATION BEGINS')}</p>
+                <h1>{t('Escape Room Online')}</h1>
               </div>
             </div>
             <div className="home-account">
-              <span className="home-player">AGENT <strong>{player?.username}</strong></span>
-              <button className="ghost-button" type="button" onClick={handleLogout}>SIGN OUT</button>
+              <span className="home-player">{t('AGENT')} <strong>{player?.username}</strong></span>
+              <button className="ghost-button" type="button" onClick={handleLogout}>{t('SIGN OUT')}</button>
             </div>
           </header>
 
           <section className="home-panel">
             <div className="home-copy">
-              <p className="eyebrow-header">MISSION BRIEF <span className="brief-marker">/ 05 ROOMS</span></p>
-              <h2>Solve the puzzles,<br />unlock the rooms.</h2>
+              <p className="eyebrow-header">{t('MISSION BRIEF')} <span className="brief-marker">/ {t('05 ROOMS')}</span></p>
+              <h2>{t('Solve the puzzles,')}<br />{t('unlock the rooms.')}</h2>
               <p>
-                Solve the puzzles, unlock the rooms, and escape before time runs out.
+                {t('Solve the puzzles, unlock the rooms, and escape before time runs out.')}
               </p>
             </div>
             <div className="home-actions">
               <button className="primary-button" type="button" onClick={() => navigate('/rooms/1')}>
-                GO TO ROOM 1 <span aria-hidden="true">→</span>
+                {t('GO TO ROOM 1')} <span aria-hidden="true">→</span>
               </button>
               {progress.gameStarted && (
                 <button className="ghost-button" type="button" onClick={() => navigate(continueTarget)}>
-                  CONTINUE GAME
+                  {t('CONTINUE GAME')}
                 </button>
               )}
               <button className="home-restart-link" type="button" onClick={startGame}>
-                {progress.gameStarted ? 'RESTART CAMPAIGN' : 'NEW INVESTIGATION'}
+                {t(progress.gameStarted ? 'RESTART CAMPAIGN' : 'NEW INVESTIGATION')}
               </button>
             </div>
           </section>
 
           {storageWarning && (
             <div className="storage-warning" role="alert">
-              <span>{storageWarning}</span>
+              <span>{getLocalizedStorageWarning(storageWarning, t)}</span>
               <button type="button" onClick={handleRetryCloudSync} disabled={isRetryingCloudSync}>
-                {isRetryingCloudSync ? 'RETRYING…' : 'RETRY CLOUD SYNC'}
+                {t(isRetryingCloudSync ? 'RETRYING…' : 'RETRY CLOUD SYNC')}
               </button>
             </div>
           )}
@@ -873,10 +952,10 @@ function App() {
           <section className="progression-section" aria-labelledby="progression-title">
             <div className="progression-heading">
               <div>
-                <p className="eyebrow-header">THE ESCAPE SEQUENCE</p>
-                <h2 id="progression-title">Your path through the rooms</h2>
+                <p className="eyebrow-header">{t('THE ESCAPE SEQUENCE')}</p>
+                <h2 id="progression-title">{t('Your path through the rooms')}</h2>
               </div>
-              <span className="progression-count">{progress.completedRooms.length} / {ROOM_CONFIG.length} CLEARED</span>
+              <span className="progression-count">{t('{count} / {total} CLEARED', { count: progress.completedRooms.length, total: ROOM_CONFIG.length })}</span>
             </div>
             <div className="room-grid home-room-grid">
               {ROOM_CONFIG.map((room, index) => {
@@ -894,20 +973,24 @@ function App() {
                     style={room.id === 3 ? {
                       backgroundImage: `linear-gradient(180deg, rgba(8, 8, 16, .18), rgba(8, 8, 16, .97)), url(${roomThreeImage})`,
                     } : undefined}
-                    aria-label={`Room ${room.id}: ${room.name}. ${isCompleted ? 'Completed' : isUnlocked ? 'Unlocked' : `Locked. Complete room ${previousRoom?.id} to unlock.`}`}
+                    aria-label={t('ROOM {room}: {name}. {status}', {
+                      room: room.id,
+                      name: t(room.name),
+                      status: t(isCompleted ? 'COMPLETED' : isUnlocked ? 'UNLOCKED' : 'LOCKED'),
+                    })}
                   >
                     <span className="room-card-art" aria-hidden="true" />
-                    <span className="room-card-topline"><span>ROOM 0{room.id}</span><i>{isCompleted ? '✓' : isUnlocked ? '◇' : '⌑'}</i></span>
+                    <span className="room-card-topline"><span>{t('ROOM 0{room}', { room: room.id })}</span><i>{isCompleted ? '✓' : isUnlocked ? '◇' : '⌑'}</i></span>
                     <span className="room-card-copy">
-                      <strong>{room.name}</strong>
-                      <span>{room.description}</span>
+                      <strong>{t(room.name)}</strong>
+                      <span>{t(room.description)}</span>
                     </span>
                     <span className={`room-card-state ${isUnlocked ? 'state-open' : 'state-locked'}`}>
                       {isCompleted
-                        ? '✓ COMPLETED'
+                        ? t('✓ COMPLETED')
                         : isUnlocked
-                          ? <>UNLOCKED <b>GO TO ROOM {room.id} <i aria-hidden="true">→</i></b></>
-                          : <>⌑ LOCKED <small>Complete Room {previousRoom?.id} to unlock.</small></>}
+                          ? <>{t('◇ UNLOCKED')} <b>{t('GO TO ROOM {room}', { room: room.id })} <i aria-hidden="true">→</i></b></>
+                          : <>⌑ {t('LOCKED')} <small>{t('Complete Room {previous} to unlock.', { previous: previousRoom?.id ?? '' })}</small></>}
                     </span>
                     {index < ROOM_CONFIG.length - 1 && <span className="room-connector" aria-hidden="true">→</span>}
                   </button>
@@ -918,15 +1001,15 @@ function App() {
 
           <div className="summary-grid">
             <div className="summary-card">
-              <span>ROOMS COMPLETED</span>
+              <span>{t('ROOMS COMPLETED')}</span>
               <strong>{progress.completedRooms.length}/{ROOM_CONFIG.length}</strong>
             </div>
             <div className="summary-card">
-              <span>SCORE</span>
-              <strong>{progress.score.toLocaleString()} PTS</strong>
+              <span>{t('SCORE')}</span>
+              <strong>{progress.score.toLocaleString()} {t('PTS')}</strong>
             </div>
             <div className="summary-card">
-              <span>HINTS USED</span>
+              <span>{t('HINTS USED')}</span>
               <strong>{progress.hintsUsed}</strong>
             </div>
           </div>
@@ -940,22 +1023,22 @@ function App() {
       return (
         <div className="dashboard-shell complete-shell">
           <div className="final-panel">
-            <p className="eyebrow-header">ALL ROOMS COMPLETE</p>
-            <h1>YOU ESCAPED!</h1>
+            <p className="eyebrow-header">{t('ALL ROOMS COMPLETE')}</p>
+            <h1>{t('YOU ESCAPED!')}</h1>
             <div className="final-score-box">
-              <span>FINAL SCORE</span>
+              <span>{t('FINAL SCORE')}</span>
               <strong>{progress.score.toLocaleString()}</strong>
             </div>
             <div className="final-meta">
-              <span>ROOMS COMPLETED: {progress.completedRooms.length}</span>
-              <span>HINTS USED: {progress.hintsUsed}</span>
+              <span>{t('ROOMS COMPLETED')}: {progress.completedRooms.length}</span>
+              <span>{t('HINTS USED')}: {progress.hintsUsed}</span>
             </div>
             <div className="final-actions">
               <button className="primary-button" type="button" onClick={() => navigate('/leaderboard')}>
-                VIEW LEADERBOARD
+                {t('VIEW LEADERBOARD')}
               </button>
               <button className="ghost-button" type="button" onClick={() => navigate('/rooms')}>
-                VIEW ROOMS
+                {t('VIEW ROOMS')}
               </button>
             </div>
           </div>
@@ -967,23 +1050,23 @@ function App() {
       return (
         <div className="dashboard-shell complete-shell">
           <div className="final-panel leaderboard-panel">
-            <p className="eyebrow-header">LEADERBOARD</p>
-            <h1>Top operators</h1>
+            <p className="eyebrow-header">{t('LEADERBOARD')}</p>
+            <h1>{t('Top operators')}</h1>
             {leaderboardError && <p className="storage-warning" role="alert">{leaderboardError}</p>}
             <ol className="leaderboard-list">
               {leaderboardEntries.map((entry, index) => (
                 <li key={entry.name}>
                   <span>#{index + 1}</span>
                   <strong>{entry.name}</strong>
-                  <em>{entry.score.toLocaleString()} PTS</em>
+                  <em>{entry.score.toLocaleString()} {t('PTS')}</em>
                 </li>
               ))}
             </ol>
             {!leaderboardError && leaderboardEntries.length === 0 && (
-              <p>No completed runs are on the leaderboard yet.</p>
+              <p>{t('No completed runs are on the leaderboard yet.')}</p>
             )}
             <button className="primary-button" type="button" onClick={() => navigate('/')}>
-              BACK HOME
+              {t('BACK HOME')}
             </button>
           </div>
         </div>
@@ -1000,6 +1083,7 @@ function App() {
           onEnterRoomTwo={handleRoomOneEnter}
           onBackHome={() => navigate('/')}
           onRoomComplete={handleRoomOneComplete}
+          onGameOver={handleRoomGameOver}
         />
       )
     }
@@ -1030,6 +1114,7 @@ function App() {
           onBackHome={() => navigate('/')}
           onRoomComplete={handleRoomThreeComplete}
           onEnterFinalRoom={handleRoomThreeEnter}
+          onGameOver={handleRoomGameOver}
         />
       )
     }
@@ -1042,6 +1127,7 @@ function App() {
           onRoomComplete={handleRoomFourComplete}
           onEnterFinalRoom={handleRoomFourEnter}
           onBackHome={() => navigate('/')}
+          onGameOver={handleRoomGameOver}
         />
       )
     }
@@ -1052,6 +1138,7 @@ function App() {
         <FinalRoom
           initialScore={progress.score}
           onComplete={handleRoomFiveComplete}
+          onGameOver={handleRoomGameOver}
         />
       )
     }
@@ -1059,9 +1146,22 @@ function App() {
     return <div>{roomsPage}</div>
   }
 
-  if (!player) return <LoginPage onLogin={handleLogin} />
-
-  return renderContent()
+  return (
+    <div
+      className="app-audio-root"
+      onPointerDownCapture={() => { unlockAudio() }}
+      onKeyDownCapture={() => { unlockAudio() }}
+      onClickCapture={(event) => {
+        if (event.target instanceof Element && event.target.closest('button, a')) {
+          playUiSound()
+        }
+      }}
+    >
+      <LanguageSwitcher />
+      {!player ? <LoginPage onLogin={handleLogin} /> : renderContent()}
+      <AudioControls />
+    </div>
+  )
 }
 
 export default App

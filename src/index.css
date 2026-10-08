@@ -38,6 +38,44 @@ button {
   font: inherit;
 }
 
+.language-switcher {
+  position: fixed;
+  z-index: 1200;
+  inset-block-start: 18px;
+  inset-inline-end: 20px;
+  min-width: 78px;
+  padding: 9px 13px;
+  border: 1px solid rgba(201, 168, 236, .45);
+  border-radius: 999px;
+  color: #f1eff7;
+  background: rgba(13, 15, 23, .88);
+  font-size: 13px;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+}
+
+html[dir='rtl'] body {
+  text-align: right;
+  font-family: Tahoma, Arial, sans-serif;
+}
+
+html[dir='rtl'] input,
+html[dir='rtl'] textarea {
+  text-align: right;
+}
+
+html[dir='rtl'] .keypad-grid,
+html[dir='rtl'] .final-keypad,
+html[dir='rtl'] .keypad-display,
+html[dir='rtl'] .final-code-display,
+html[dir='rtl'] .password-slots {
+  direction: ltr;
+}
+
+html[dir='rtl'] .language-switcher {
+  direction: ltr;
+}
+
 button:focus-visible,
 a:focus-visible {
   outline: 2px solid #c9a8ec;
