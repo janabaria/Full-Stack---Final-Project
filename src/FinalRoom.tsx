@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './FinalRoom.css'
+import { useI18n } from './useI18n'
 
 const accessCode = '4126'
 const hints = [
@@ -11,15 +12,18 @@ const hints = [
 type FinalRoomProps = {
   initialScore: number
   onComplete: (details: { score: number; hintsUsed: number }) => void
+  onGameOver?: () => void
 }
 
-function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
+function FinalRoom({ initialScore, onComplete, onGameOver }: FinalRoomProps) {
+  const { t } = useI18n()
   const [timeLeft, setTimeLeft] = useState(8 * 60)
   const [score, setScore] = useState(initialScore)
   const [code, setCode] = useState('')
   const [hintIndex, setHintIndex] = useState(0)
   const [message, setMessage] = useState('')
   const [complete, setComplete] = useState(false)
+  const gameOverNotifiedRef = useRef(false)
   const gameOver = timeLeft === 0 && !complete
 
   useEffect(() => {
@@ -29,6 +33,12 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
     }, 1000)
     return () => window.clearTimeout(timer)
   }, [complete, gameOver, timeLeft])
+
+  useEffect(() => {
+    if (!gameOver || gameOverNotifiedRef.current) return
+    gameOverNotifiedRef.current = true
+    onGameOver?.()
+  }, [gameOver, onGameOver])
 
   const formattedTime = `${Math.floor(timeLeft / 60).toString().padStart(2, '0')}:${(timeLeft % 60).toString().padStart(2, '0')}`
 
@@ -73,10 +83,10 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
       <header className="final-room-header">
         <a href="/" className="final-brand"><span>E</span> ESCAPE ROOM ONLINE</a>
         <div className="final-room-stats">
-          <span>FINAL ROOM</span><strong>{formattedTime}</strong><strong>{score.toLocaleString()} PTS</strong>
+          <span>{t('FINAL ROOM')}</span><strong>{formattedTime}</strong><strong>{score.toLocaleString()} {t('PTS')}</strong>
         </div>
       </header>
-      <section className="vault-scene" aria-label="The final vault">
+      <section className="vault-scene" aria-label={t('The final vault')}>
         <div className="vault-halo" />
         <div className={`vault-door ${complete ? 'vault-open' : ''}`}>
           <div className="vault-rings"><i /><i /><i /><span>✦</span></div>
@@ -87,15 +97,15 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
         <div className="vault-floor" />
         <div className="final-case">
           <div className="final-case-heading">
-            <span className="final-room-kicker">ROOM 05 <i /> THE LAST LOCK</span>
-            <h1>One final truth.</h1>
-            <p>The vault remembers every clue. Enter its four-digit code and make your escape.</p>
+            <span className="final-room-kicker">{t('ROOM 05')} <i /> {t('THE LAST LOCK')}</span>
+            <h1>{t('One final truth.')}</h1>
+            <p>{t('The vault remembers every clue. Enter its four-digit code and make your escape.')}</p>
           </div>
           <div className="final-clue">
-            <span>THE FINAL NOTE</span>
-            <p>“Four corners begin the sequence. A dozen follows; half a dozen brings it to its end.”</p>
+            <span>{t('THE FINAL NOTE')}</span>
+            <p>{t('“Four corners begin the sequence. A dozen follows; half a dozen brings it to its end.”')}</p>
           </div>
-          <div className="final-code-display" aria-label={`${code.length} of four digits entered`}>
+          <div className="final-code-display" aria-label={t('{entered} of four digits entered', { entered: code.length })}>
             {[0, 1, 2, 3].map((slot) => <i className={code.length > slot ? 'digit-on' : ''} key={slot}>{code.length > slot ? '●' : '○'}</i>)}
           </div>
           <div className="final-keypad">
@@ -103,7 +113,7 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
               <button
                 type="button"
                 key={key}
-                aria-label={key === '←' ? 'Clear code' : key === '✓' ? 'Unlock the final vault' : key}
+                aria-label={key === '←' ? t('Clear code') : key === '✓' ? t('Unlock the final vault') : key}
                 onClick={() => {
                   if (key === '←') {
                     setCode('')
@@ -117,27 +127,27 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
             ))}
           </div>
           <button className="final-hint-button" type="button" onClick={useHint} disabled={hintIndex >= hints.length}>
-            ✧ {hintIndex >= hints.length ? 'NO HINTS REMAINING' : 'REQUEST A HINT · -50 PTS'}
+            ✧ {t(hintIndex >= hints.length ? 'NO HINTS REMAINING' : 'REQUEST A HINT · -50 PTS')}
           </button>
-          {message && <p className={`final-feedback ${message.startsWith('ACCESS') ? 'feedback-denied' : ''}`} role="status">{message}</p>}
+          {message && <p className={`final-feedback ${message.startsWith('ACCESS') ? 'feedback-denied' : ''}`} role="status">{t(message)}</p>}
         </div>
       </section>
       {(complete || gameOver) && (
         <div className="final-result-backdrop">
           <section className="final-result-card" role="dialog" aria-modal="true" aria-labelledby="final-result-title">
             <span className="result-star">{complete ? '✦' : '00:00'}</span>
-            <p>{complete ? 'ALL FIVE ROOMS CLEARED' : 'TIME EXPIRED'}</p>
-            <h2 id="final-result-title">{complete ? 'YOU ESCAPED.' : 'THE VAULT REMAINS SEALED.'}</h2>
-            <span className="result-total">{complete ? score.toLocaleString() : 'The clock ran out.'}{complete && ' PTS'}</span>
+            <p>{t(complete ? 'ALL FIVE ROOMS CLEARED' : 'TIME EXPIRED')}</p>
+            <h2 id="final-result-title">{t(complete ? 'YOU ESCAPED!' : 'THE VAULT REMAINS SEALED.')}</h2>
+            <span className="result-total">{complete ? score.toLocaleString() : t('The clock ran out.')}{complete && ` ${t('PTS')}`}</span>
             {complete ? (
-              <p className="result-copy">The last lock yields. You made it out.</p>
+              <p className="result-copy">{t('The last lock yields. You made it out.')}</p>
             ) : (
-              <button className="final-restart" type="button" onClick={restart}>RETRY FINAL ROOM</button>
+              <button className="final-restart" type="button" onClick={restart}>{t('RETRY FINAL ROOM')}</button>
             )}
           </section>
         </div>
       )}
-      <footer className="final-room-footer"><span>THE LAST LOCK</span><span>ALL PROGRESS SAVED ON THIS DEVICE</span></footer>
+      <footer className="final-room-footer"><span>{t('THE LAST LOCK')}</span><span>{t('ALL PROGRESS SAVED LOCALLY')}</span></footer>
     </main>
   )
 }
