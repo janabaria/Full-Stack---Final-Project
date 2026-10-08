@@ -161,7 +161,7 @@ export const RoomFive = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom,
                   style={{ background: '#16a34a', marginTop: '15px' }}
                   onClick={onEnterFinalRoom}
                 >
-                  Complete Escape →
+                  ENTER ROOM 05 →
                 </button>
               </div>
             )}
