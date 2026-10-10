@@ -8,6 +8,7 @@ type Room3Props = {
   onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
   onEnterFinalRoom?: () => void
   onBackHome?: () => void
+  onGameOver?: () => void
 }
 
 export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, onBackHome }: Room3Props) => {
@@ -29,6 +30,7 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
   const [doorUnlocked, setDoorUnlocked] = useState<boolean>(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string>('');
   const completionNotifiedRef = useRef(false);
+  const gameOverNotifiedRef = useRef(false);
 
   const CORRECT_SAFE_CODE = '7392';
   const isGameOver = timeLeft <= 0;
@@ -46,6 +48,12 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
     setCompletionSent(true);
     onRoomComplete?.({ score: finalScore, hintsUsed: 0 });
   }, [completionSent, doorUnlocked, initialScore, onRoomComplete, safeUnlocked, score, timeLeft]);
+
+  useEffect(() => {
+    if (!isGameOver || gameOverNotifiedRef.current) return;
+    gameOverNotifiedRef.current = true;
+    onGameOver?.();
+  }, [isGameOver, onGameOver]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -66,9 +74,9 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
     if (safeInput === CORRECT_SAFE_CODE) {
       setSafeUnlocked(true);
       setHasKeycard(true);
-      setFeedbackMsg('ACCESS GRANTED! Security Keycard collected 💳');
+      setFeedbackMsg('ACCESS GRANTED! Security Keycard collected');
     } else {
-      setFeedbackMsg('WRONG CODE! Alarm Triggered 🚨');
+      setFeedbackMsg('WRONG CODE! Alarm Triggered');
       setIsAlarmActive(true);
       setSafeInput('');
     }

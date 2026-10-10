@@ -3,7 +3,7 @@ import './LoginPage.css'
 import { usePreferences } from './preferencesContext'
 
 type LoginPageProps = {
-  onLogin: (username: string) => boolean
+  onLogin: (username: string, password: string) => Promise<void>
 }
 
 function LoginPage({ onLogin }: LoginPageProps) {
@@ -19,9 +19,9 @@ function LoginPage({ onLogin }: LoginPageProps) {
       setError('Enter your username and password to continue.')
       return
     }
-    if (!onLogin(username)) {
-      setError('Your session could not be saved. Check your browser storage and try again.')
-    }
+    void onLogin(username, password).catch((loginError: unknown) => {
+      setError(loginError instanceof Error ? loginError.message : 'Could not sign in. Please try again.')
+    })
   }
 
   return (
@@ -61,7 +61,7 @@ function LoginPage({ onLogin }: LoginPageProps) {
               }}
               required
             />
-            {error && <p className="login-error" role="alert">{error}</p>}
+            {error && <p className="login-error" role="alert">{t(error)}</p>}
             <button className="login-submit" type="submit">
               <span>{t('login.continue')}</span><i aria-hidden="true">→</i>
             </button>

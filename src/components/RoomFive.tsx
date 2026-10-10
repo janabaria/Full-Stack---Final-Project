@@ -9,6 +9,7 @@ type RoomFiveProps = {
   onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
   onEnterFinalRoom?: () => void
   onBackHome?: () => void
+  onGameOver?: () => void
 }
 
 type Item = {
@@ -32,6 +33,7 @@ export const RoomFive = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom,
   const [enteredCode, setEnteredCode] = useState<string>('');
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const completionNotifiedRef = useRef(false);
+  const gameOverNotifiedRef = useRef(false);
 
   const [items, setItems] = useState<Item[]>([
     { id: 'item1', name: 'Globe', digit: '4', found: false, x: 13.5, y: 48, width: 5.8, height: 16.5 },
@@ -57,6 +59,12 @@ export const RoomFive = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom,
     setCompletionSent(true);
     onRoomComplete?.({ score: finalScore, hintsUsed: 0 });
   }, [completionSent, doorUnlocked, initialScore, onRoomComplete, score, timeLeft]);
+
+  useEffect(() => {
+    if (!isGameOver || gameOverNotifiedRef.current) return;
+    gameOverNotifiedRef.current = true;
+    onGameOver?.();
+  }, [isGameOver, onGameOver]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

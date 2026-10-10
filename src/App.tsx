@@ -180,6 +180,15 @@ function getContinueTarget(progress: GameProgress): string {
   return ROOM_CONFIG[progress.currentRoom - 1]?.path ?? '/'
 }
 
+function getLocalizedStorageWarning(message: string, t: (text: string, values?: Record<string, string | number>) => string) {
+  const unavailable = message.match(/^Cloud sync (is|is still) unavailable(.*)\. Progress is being kept on this device\.$/)
+  if (!unavailable) return t(message)
+  const key = unavailable[1] === 'still'
+    ? 'Cloud sync is still unavailable{reason}. Progress is being kept on this device.'
+    : 'Cloud sync is unavailable{reason}. Progress is being kept on this device.'
+  return t(key, { reason: unavailable[2] })
+}
+
 export function RoomTwoGame({
   initialScore = 750,
   onEnterRoomThree,
@@ -643,35 +652,44 @@ function App() {
   }, [])
 
   const handleRoomOneComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    playSuccessSound()
     completeRoom(1, details.score, details.hintsUsed)
   }, [completeRoom])
 
   const handleRoomTwoComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    playSuccessSound()
     completeRoom(2, details.score, details.hintsUsed)
   }, [completeRoom])
 
   const handleRoomThreeComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    playSuccessSound()
     completeRoom(3, details.score, details.hintsUsed)
   }, [completeRoom])
 
 
     const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    playSuccessSound()
     completeRoom(4, details.score, details.hintsUsed)
   }, [completeRoom])
 
-  const handleLogin = useCallback((username: string) => {
+    const handleRoomGameOver = useCallback(() => {
+      playFailureSound()
+    }, [])
+
+  const handleLogin = useCallback(async (username: string, password: string) => {
     const nextPlayer = { username }
     try {
+      await authenticateLocalPlayer(username, password)
       window.localStorage.setItem(PLAYER_KEY, JSON.stringify(nextPlayer))
       setProgress(loadProgress(username))
       setHydratedUsername(null)
       setStorageWarning('')
       setPlayer(nextPlayer)
       navigate('/')
-      return true
     } catch (error) {
+      if (error instanceof Error) throw error
       console.error('Could not create the local player session.', error)
-      return false
+      throw new Error('Your session could not be saved. Check your browser storage and try again.')
     }
   }, [navigate])
 
@@ -740,9 +758,31 @@ function App() {
   }, [navigate, progress.completedRooms])
 
   const handleRoomFiveComplete = useCallback((details: { score: number; hintsUsed: number }) => {
+    playVictorySound()
+    const previousBestKey = `escape-room-high-score:${playerKey ?? 'guest'}`
+    let previousBest = 0
+    try {
+      previousBest = Number(window.localStorage.getItem(previousBestKey)) || 0
+      window.localStorage.setItem(previousBestKey, String(Math.max(previousBest, details.score)))
+    } catch (error) {
+      console.error('Could not update the local high score.', error)
+    }
+
+    getLeaderboard()
+      .then((entries) => {
+        const leaderboardBest = entries[0]?.score ?? 0
+        if (details.score > Math.max(previousBest, leaderboardBest)) {
+          playRecordCelebration()
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('Could not check the leaderboard record.', error)
+        if (details.score > previousBest) playRecordCelebration()
+      })
+
     completeRoom(5, details.score, details.hintsUsed)
     navigate('/game-complete')
-  }, [completeRoom, navigate])
+  }, [completeRoom, navigate, playerKey])
 
   // const handleFinishCampaign = useCallback(() => {
   //   if (!progress.completedRooms.includes(5)) {
@@ -882,7 +922,7 @@ function App() {
 
           {storageWarning && (
             <div className="storage-warning" role="alert">
-              <span>{storageWarning}</span>
+              <span>{getLocalizedStorageWarning(storageWarning, t)}</span>
               <button type="button" onClick={handleRetryCloudSync} disabled={isRetryingCloudSync}>
                 {translateRoomText(isRetryingCloudSync ? 'RETRYING…' : 'RETRY CLOUD SYNC', language)}
               </button>
@@ -994,7 +1034,7 @@ function App() {
                 <li key={entry.name}>
                   <span>#{index + 1}</span>
                   <strong>{entry.name}</strong>
-                  <em>{entry.score.toLocaleString()} PTS</em>
+                  <em>{entry.score.toLocaleString()} {t('PTS')}</em>
                 </li>
               ))}
             </ol>
@@ -1019,6 +1059,7 @@ function App() {
           onEnterRoomTwo={handleRoomOneEnter}
           onBackHome={() => navigate('/')}
           onRoomComplete={handleRoomOneComplete}
+          onGameOver={handleRoomGameOver}
         />
       )
     }
@@ -1049,6 +1090,7 @@ function App() {
           onBackHome={() => navigate('/')}
           onRoomComplete={handleRoomThreeComplete}
           onEnterFinalRoom={handleRoomThreeEnter}
+          onGameOver={handleRoomGameOver}
         />
       )
     }
@@ -1061,6 +1103,7 @@ function App() {
           onRoomComplete={handleRoomFourComplete}
           onEnterFinalRoom={handleRoomFourEnter}
           onBackHome={() => navigate('/')}
+          onGameOver={handleRoomGameOver}
         />
       )
     }
@@ -1071,6 +1114,7 @@ function App() {
         <FinalRoom
           initialScore={progress.score}
           onComplete={handleRoomFiveComplete}
+          onGameOver={handleRoomGameOver}
         />
       )
     }

@@ -49,8 +49,12 @@ The Express API provides:
 
 Progress is still written to browser storage as a fallback. When the backend is available, it loads the server copy on sign-in and synchronizes changes after a brief delay. The leaderboard reads completed runs from Supabase.
 
+## Game audio
+
+The audio layer is in `src/audio/`. It synthesizes original room-specific ambient music and UI/success/failure/victory effects with the Web Audio API, so no external audio files or third-party music licenses are required. Room moods and note patterns can be adjusted in `audioEngine.ts`; replace the generated voices there when licensed audio assets are ready. Audio begins after the player's first click/key interaction to comply with browser autoplay rules. Music, effects, and master volume settings are stored on the device.
+
 ## Authentication and security
 
-Sign-in remains a **local demo session**: any non-empty username/email and password creates a session, and the password is not stored. The backend identifies saved data by normalized username, so users can impersonate another username and alter scores in this demo setup. Server-side validation protects the database shape, but it does not prove who owns a score.
+Sign-in remains a **local demo session**. The first sign-in for a username/email creates a device-local credential; subsequent sign-ins must match its password. Only a random salt and PBKDF2-SHA-256 password hash are stored in this browser, not the password itself. These local credentials do not sync across devices and are not a substitute for server authentication. The backend identifies saved data by normalized username, so users can still impersonate another username and alter scores in this demo setup. Server-side validation protects the database shape, but it does not prove who owns a score.
 
 Before exposing this game publicly or treating the leaderboard as trusted, add real authentication (for example Supabase Auth), verify the user's access token in Express, key progress by the verified auth user ID, and enforce score/progression rules server-side. Row-level security is enabled on the table; the Express service-role key bypasses it and must remain private.
