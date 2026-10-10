@@ -329,6 +329,7 @@ function startTeamRace(teamCode) {
 function addSocketToTeam(socket, teamCode, roomNumber = null) {
   const previousTeamCode = socket.data.teamCode
   if (previousTeamCode && previousTeamCode !== teamCode) {
+    if (socket.data.roomId) socket.leave(socket.data.roomId)
     socket.leave(`team-${previousTeamCode}`)
     const previousMembers = teamMembers.get(previousTeamCode)
     const previousMember = previousMembers?.get(socket.data.user.id)
@@ -412,7 +413,7 @@ async function joinTeamRoom(socket, teamCode, roomNumber) {
 
   socket.emit('room:joined', {
     roomId,
-    state: sharedRoomStates.get(roomId) ?? {
+    state: getTeamSharedState(teamCode) ?? {
       currentRoom: roomNumber,
       completedRooms: [],
       score: 0,

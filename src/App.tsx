@@ -1262,8 +1262,6 @@ function App() {
       <div hidden={route !== '/'}>{renderContent(true)}</div>
       {route !== '/' && renderContent()}
       {activeRoomMatch && (
-      {renderContent()}
-      {player && activeRoomMatch && (
         <TeamChatDrawer
           roomNumber={Number(activeRoomMatch[1])}
           playerName={player.username}
