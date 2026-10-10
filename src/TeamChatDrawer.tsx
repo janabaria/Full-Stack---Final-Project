@@ -158,9 +158,12 @@ export default function TeamChatDrawer({
         setStandings(entries)
         onTeamLeaderboard(entries)
       })
-      nextSocket.on('navigate_room', ({ roomNumber: targetRoom, state }) => {
-        onTeamNavigate(targetRoom, state)
+
+      nextSocket.on('navigate_room', (data) => {
+        if (!data || !Number.isInteger(data.roomNumber) || data.roomNumber < 1 || data.roomNumber > 5) return
+        onTeamNavigate(data.roomNumber, isSharedRoomState(data.state) ? data.state : null)
       })
+
       nextSocket.connect()
       setSocket(nextSocket)
       const { data: { subscription } } = getSupabaseClient().auth.onAuthStateChange((_event, session) => {
