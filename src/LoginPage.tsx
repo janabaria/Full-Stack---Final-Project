@@ -61,7 +61,7 @@ function LoginPage({ onLogin }: LoginPageProps) {
               }}
               required
             />
-            {error && <p className="login-error" role="alert">{t(error)}</p>}
+            {error && <p className="login-error" role="alert">{error}</p>}
             <button className="login-submit" type="submit">
               <span>{t('login.continue')}</span><i aria-hidden="true">→</i>
             </button>

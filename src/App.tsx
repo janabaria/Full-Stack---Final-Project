@@ -8,6 +8,7 @@ import FinalRoom from './FinalRoom'
 import roomThreeImage from './images/ROOM3.png'
 import { RoomFive } from './components/RoomFive'
 import PreferenceControls from './PreferenceControls'
+import { authenticateLocalPlayer } from './localAuth'
 import { usePreferences } from './preferencesContext'
 import { translateRoomText } from './roomTranslations'
 
@@ -180,13 +181,13 @@ function getContinueTarget(progress: GameProgress): string {
   return ROOM_CONFIG[progress.currentRoom - 1]?.path ?? '/'
 }
 
-function getLocalizedStorageWarning(message: string, t: (text: string, values?: Record<string, string | number>) => string) {
+function getLocalizedStorageWarning(message: string, language: 'en' | 'ar') {
   const unavailable = message.match(/^Cloud sync (is|is still) unavailable(.*)\. Progress is being kept on this device\.$/)
-  if (!unavailable) return t(message)
-  const key = unavailable[1] === 'still'
-    ? 'Cloud sync is still unavailable{reason}. Progress is being kept on this device.'
-    : 'Cloud sync is unavailable{reason}. Progress is being kept on this device.'
-  return t(key, { reason: unavailable[2] })
+  if (!unavailable) return translateRoomText(message, language)
+  const prefix = unavailable[1] === 'still'
+    ? 'Cloud sync is still unavailable'
+    : 'Cloud sync is unavailable'
+  return `${translateRoomText(prefix, language)}${unavailable[2]}. ${translateRoomText('Progress is being kept on this device.', language)}`
 }
 
 export function RoomTwoGame({
@@ -652,29 +653,20 @@ function App() {
   }, [])
 
   const handleRoomOneComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-    playSuccessSound()
     completeRoom(1, details.score, details.hintsUsed)
   }, [completeRoom])
 
   const handleRoomTwoComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-    playSuccessSound()
     completeRoom(2, details.score, details.hintsUsed)
   }, [completeRoom])
 
   const handleRoomThreeComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-    playSuccessSound()
     completeRoom(3, details.score, details.hintsUsed)
   }, [completeRoom])
 
-
-    const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-    playSuccessSound()
+  const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number }) => {
     completeRoom(4, details.score, details.hintsUsed)
   }, [completeRoom])
-
-    const handleRoomGameOver = useCallback(() => {
-      playFailureSound()
-    }, [])
 
   const handleLogin = useCallback(async (username: string, password: string) => {
     const nextPlayer = { username }
@@ -758,7 +750,6 @@ function App() {
   }, [navigate, progress.completedRooms])
 
   const handleRoomFiveComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-    playVictorySound()
     const previousBestKey = `escape-room-high-score:${playerKey ?? 'guest'}`
     let previousBest = 0
     try {
@@ -767,18 +758,6 @@ function App() {
     } catch (error) {
       console.error('Could not update the local high score.', error)
     }
-
-    getLeaderboard()
-      .then((entries) => {
-        const leaderboardBest = entries[0]?.score ?? 0
-        if (details.score > Math.max(previousBest, leaderboardBest)) {
-          playRecordCelebration()
-        }
-      })
-      .catch((error: unknown) => {
-        console.error('Could not check the leaderboard record.', error)
-        if (details.score > previousBest) playRecordCelebration()
-      })
 
     completeRoom(5, details.score, details.hintsUsed)
     navigate('/game-complete')
@@ -922,7 +901,7 @@ function App() {
 
           {storageWarning && (
             <div className="storage-warning" role="alert">
-              <span>{getLocalizedStorageWarning(storageWarning, t)}</span>
+              <span>{getLocalizedStorageWarning(storageWarning, language)}</span>
               <button type="button" onClick={handleRetryCloudSync} disabled={isRetryingCloudSync}>
                 {translateRoomText(isRetryingCloudSync ? 'RETRYING…' : 'RETRY CLOUD SYNC', language)}
               </button>
@@ -1034,7 +1013,7 @@ function App() {
                 <li key={entry.name}>
                   <span>#{index + 1}</span>
                   <strong>{entry.name}</strong>
-                  <em>{entry.score.toLocaleString()} {t('PTS')}</em>
+                  <em>{entry.score.toLocaleString()} {translateRoomText('PTS', language)}</em>
                 </li>
               ))}
             </ol>
@@ -1059,7 +1038,6 @@ function App() {
           onEnterRoomTwo={handleRoomOneEnter}
           onBackHome={() => navigate('/')}
           onRoomComplete={handleRoomOneComplete}
-          onGameOver={handleRoomGameOver}
         />
       )
     }
@@ -1090,7 +1068,6 @@ function App() {
           onBackHome={() => navigate('/')}
           onRoomComplete={handleRoomThreeComplete}
           onEnterFinalRoom={handleRoomThreeEnter}
-          onGameOver={handleRoomGameOver}
         />
       )
     }
@@ -1103,7 +1080,6 @@ function App() {
           onRoomComplete={handleRoomFourComplete}
           onEnterFinalRoom={handleRoomFourEnter}
           onBackHome={() => navigate('/')}
-          onGameOver={handleRoomGameOver}
         />
       )
     }
@@ -1114,7 +1090,6 @@ function App() {
         <FinalRoom
           initialScore={progress.score}
           onComplete={handleRoomFiveComplete}
-          onGameOver={handleRoomGameOver}
         />
       )
     }

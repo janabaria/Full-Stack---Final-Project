@@ -299,6 +299,7 @@ const arabicRoomMessages: Record<string, string> = {
   'RETRYING…': 'جارٍ إعادة المحاولة…',
   'RETRY CLOUD SYNC': 'أعد مزامنة السحابة',
   'Cloud sync is unavailable': 'المزامنة السحابية غير متاحة',
+  'Cloud sync is still unavailable': 'ما زالت المزامنة السحابية غير متاحة',
   'Progress is being kept on this device.': 'يُحفظ التقدم على هذا الجهاز.',
   'Cloud sync is currently unavailable. Please try again later.': 'المزامنة السحابية غير متاحة حاليًا. حاول مرة أخرى لاحقًا.',
 }
