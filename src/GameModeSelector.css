@@ -1,0 +1,222 @@
+.game-mode-card {
+  max-width: 1240px;
+  margin: 22px auto 0;
+  padding: 22px clamp(18px, 3vw, 30px);
+  border: 1px solid rgba(189, 160, 217, .2);
+  border-radius: 3px;
+  background: linear-gradient(130deg, rgba(15, 17, 28, .96), rgba(23, 19, 33, .82));
+}
+
+.game-mode-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.game-mode-heading .eyebrow-header {
+  margin-bottom: 6px;
+  font-size: 8px;
+}
+
+.game-mode-heading h2 {
+  margin: 0;
+  color: #ede7f0;
+  font: 500 clamp(18px, 2.6vw, 24px) 'Playfair Display', Georgia, serif;
+}
+
+.game-mode-connection {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #898594;
+  font: 8px 'DM Mono', monospace;
+  letter-spacing: .8px;
+}
+
+.game-mode-connection i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #817487;
+}
+
+.game-mode-connection.is-connected i {
+  background: #68d8a0;
+  box-shadow: 0 0 9px rgba(104, 216, 160, .6);
+}
+
+.game-mode-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.game-mode-option {
+  display: flex;
+  min-width: 0;
+  min-height: 77px;
+  align-items: center;
+  gap: 13px;
+  padding: 13px 15px;
+  border: 1px solid rgba(188, 171, 210, .18);
+  border-radius: 3px;
+  color: #eee8f2;
+  background: rgba(7, 9, 17, .46);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease;
+}
+
+.game-mode-option:hover,
+.game-mode-option.is-selected {
+  border-color: rgba(203, 174, 232, .6);
+  background: rgba(119, 84, 148, .13);
+}
+
+.game-mode-option-icon {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border: 1px solid rgba(217, 189, 139, .27);
+  border-radius: 50%;
+  color: #d8bd91;
+  font-size: 19px;
+}
+
+.game-mode-option > span:nth-child(2) {
+  display: grid;
+  gap: 5px;
+}
+
+.game-mode-option strong {
+  font-size: 12px;
+}
+
+.game-mode-option small {
+  color: #a49caf;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.game-mode-option > i {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  place-items: center;
+  margin-left: auto;
+  border: 1px solid rgba(188, 171, 210, .3);
+  border-radius: 50%;
+  color: #e3c89b;
+  font: normal 10px 'DM Mono', monospace;
+}
+
+.game-mode-team-controls {
+  display: grid;
+  grid-template-columns: 1fr minmax(240px, .8fr);
+  gap: 14px 22px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(188, 171, 210, .12);
+}
+
+.game-mode-team-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.game-mode-team-actions button,
+.game-mode-join button {
+  min-height: 37px;
+  padding: 0 12px;
+  border: 1px solid rgba(217, 189, 139, .46);
+  border-radius: 3px;
+  color: #e6d0ad;
+  background: rgba(183, 145, 84, .1);
+  font: 9px 'DM Mono', monospace;
+  letter-spacing: .5px;
+  cursor: pointer;
+}
+
+.game-mode-team-actions button:hover,
+.game-mode-join button:hover {
+  background: rgba(183, 145, 84, .22);
+}
+
+.game-mode-team-actions button:disabled,
+.game-mode-join button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.game-mode-team-actions .game-mode-cancel {
+  border-color: rgba(255, 179, 193, .28);
+  color: #ffb3c1;
+}
+
+.game-mode-join label {
+  display: block;
+  margin-bottom: 6px;
+  color: #aaa2b4;
+  font: 8px 'DM Mono', monospace;
+  letter-spacing: .7px;
+}
+
+.game-mode-join > div {
+  display: flex;
+  gap: 7px;
+}
+
+.game-mode-join input {
+  min-width: 0;
+  flex: 1;
+  padding: 0 10px;
+  border: 1px solid rgba(188, 171, 210, .2);
+  border-radius: 3px;
+  outline: none;
+  color: #f1ebf5;
+  background: rgba(5, 7, 13, .72);
+  font: 11px 'DM Mono', monospace;
+  letter-spacing: 1px;
+}
+
+.game-mode-join input:focus {
+  border-color: rgba(203, 174, 232, .65);
+}
+
+.game-mode-status,
+.game-mode-error,
+.game-mode-active-team {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #b7b0c1;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.game-mode-active-team strong {
+  color: #e8d2ac;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 1px;
+}
+
+.game-mode-error {
+  color: #ffb3c1;
+}
+
+@media (max-width: 620px) {
+  .game-mode-options,
+  .game-mode-team-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .game-mode-heading {
+    align-items: flex-start;
+  }
+}

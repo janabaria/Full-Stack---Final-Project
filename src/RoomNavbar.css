@@ -1,0 +1,168 @@
+.room-navbar {
+  position: relative;
+  z-index: 30;
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 0 clamp(20px, 4.3vw, 72px);
+  border-bottom: 1px solid rgba(204, 197, 224, .09);
+  background: rgba(10, 10, 17, .96);
+  color: #f1eff7;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.room-navbar-brand {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 11px;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2.1px;
+}
+
+.room-navbar-mark {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+}
+
+.room-navbar-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.room-navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-left: auto;
+}
+
+.room-navbar-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #b5b1c1;
+  font: 9px 'DM Mono', monospace;
+  letter-spacing: 1px;
+  transition: color .18s ease;
+}
+
+.room-navbar-links a:hover {
+  color: #e8d2ac;
+}
+
+.room-navbar-links a span {
+  font-size: 15px;
+}
+
+.room-navbar-right {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2vw, 24px);
+}
+
+.room-navbar-player {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #898797;
+  font: 9px 'DM Mono', monospace;
+  letter-spacing: .8px;
+}
+
+.room-navbar-player-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-navbar-online-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9a7ad3;
+  box-shadow: 0 0 9px rgba(157, 115, 225, .72);
+}
+
+.room-navbar-avatar {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border: 1px solid rgba(201, 169, 121, .38);
+  border-radius: 50%;
+  color: #d7bf9e;
+  font: 11px 'DM Mono', monospace;
+}
+
+@media (max-width: 680px) {
+  .room-navbar {
+    min-height: 58px;
+    gap: 12px;
+    padding: 0 13px;
+  }
+
+  .room-navbar-brand {
+    gap: 6px;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .room-navbar-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .room-navbar-links a {
+    gap: 4px;
+    font-size: 8px;
+    letter-spacing: .45px;
+  }
+
+  .room-navbar-right {
+    gap: 8px;
+  }
+
+  .room-navbar-player {
+    gap: 5px;
+    font-size: 8px;
+  }
+
+  .room-navbar-player-name {
+    max-width: 65px;
+  }
+
+  .room-navbar-online-dot {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .room-navbar {
+    gap: 6px;
+    padding: 0 8px;
+  }
+
+  .room-navbar-brand {
+    gap: 3px;
+    letter-spacing: .5px;
+  }
+
+  .room-navbar-mark {
+    width: 29px;
+    height: 29px;
+  }
+
+  .room-navbar-player-name {
+    display: none;
+  }
+}

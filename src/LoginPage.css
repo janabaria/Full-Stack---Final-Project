@@ -134,6 +134,22 @@
   text-align: center;
 }
 
+.login-mode-toggle {
+  display: block;
+  margin: 14px auto 0;
+  padding: 3px;
+  border: 0;
+  color: #a9c6ff;
+  background: transparent;
+  font: 11px 'DM Sans', sans-serif;
+  cursor: pointer;
+}
+
+.login-mode-toggle:hover {
+  color: #d6e4ff;
+  text-decoration: underline;
+}
+
 html[dir='rtl'] .login-card label {
   text-align: right;
 }

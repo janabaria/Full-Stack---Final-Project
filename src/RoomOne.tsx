@@ -47,7 +47,7 @@ function RoomOne({
 }: {
   onEnterRoomTwo?: () => void
   onBackHome?: () => void
-  onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
+  onRoomComplete?: (details: { score: number; hintsUsed: number; inventory: string[] }) => void
 }) {
   const { language } = usePreferences()
   const tr = (text: string) => translateRoomText(text, language)
@@ -99,7 +99,11 @@ function RoomOne({
   useEffect(() => {
     if (!roomComplete || completionNotifiedRef.current) return
     completionNotifiedRef.current = true
-    onRoomComplete?.({ score, hintsUsed: hintCount })
+    onRoomComplete?.({
+      score,
+      hintsUsed: hintCount,
+      inventory: ['Message fragment: THE TRUTH IS HIDDEN BEHIND THE CLOCK', 'Exit code: 4827'],
+    })
   }, [hintCount, onRoomComplete, roomComplete, score])
 
   const formattedTime = `${Math.floor(secondsLeft / 60)
@@ -231,29 +235,6 @@ function RoomOne({
 
   return (
     <main className="game-shell">
-      <header className="topbar">
-        <a className="brand" href="#room-01" aria-label="MAZORA">
-          <span className="brand-mark">
-            <img src="/images/mazora-logo-transparent.png" alt="MAZORA Escape Room Game Logo" />
-          </span>
-          <span>
-            <span className="brand-name">MAZORA</span>
-            <span className="brand-caption">{tr('PUZZLE ESCAPE ROOM')}</span>
-          </span>
-        </a>
-        <div className="topbar-right">
-          <span className="live-indicator">
-            <i /> {tr('LIVE SESSION')}
-          </span>
-          <span
-            className="avatar-button"
-            aria-hidden="true"
-          >
-            A
-          </span>
-        </div>
-      </header>
-
       <section className="mission-bar" aria-label={tr('Room status')}>
         <div className="room-identity">
           <span className="eyebrow">{tr('CURRENT LOCATION')}</span>

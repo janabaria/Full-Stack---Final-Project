@@ -75,7 +75,6 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
   return (
     <main className="final-room">
       <header className="final-room-header">
-        <a href="/" className="final-brand"><span><img src="/images/mazora-logo-transparent.png" alt="MAZORA Escape Room Game Logo" /></span> MAZORA</a>
         <div className="final-room-stats">
           <span>{tr('FINAL ROOM')}</span><strong>{formattedTime}</strong><strong>{score.toLocaleString()} {tr('PTS')}</strong>
         </div>
