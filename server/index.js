@@ -53,10 +53,8 @@ function removeFromQuickMatchQueue(socketId) {
 function getTeamSharedState(teamCode) {
   let state = null
   for (const roomNumber of roomOrder) {
-    state = mergeSharedRoomState(
-      state,
-      sharedRoomStates.get(`team-${teamCode}-room-${roomNumber}`) ?? null,
-    )
+    const roomState = sharedRoomStates.get(`team-${teamCode}-room-${roomNumber}`)
+    if (roomState) state = mergeSharedRoomState(state, roomState)
   }
   return state
 }
@@ -223,6 +221,7 @@ function validatedSharedState(value) {
 }
 
 function mergeSharedRoomState(currentState, nextState) {
+  if (!nextState) return currentState
   if (!currentState) return nextState
   return {
     currentRoom: Math.max(currentState.currentRoom, nextState.currentRoom),
@@ -493,14 +492,37 @@ io.on('connection', (socket) => {
     const teamCode = payload && typeof payload === 'object' ? payload.teamCode : null
     const roomNumber = payload && typeof payload === 'object' ? payload.roomNumber : null
     try {
+      if (!Number.isSafeInteger(roomNumber) || !roomOrder.includes(roomNumber)) {
+        throw new Error('Choose a valid game room (1–5).')
+      }
+      if (roomNumber > 1) {
+        const teamState = getTeamSharedState(teamCode)
+        if (!teamState?.completedRooms.includes(roomNumber - 1)) {
+          throw new Error(`Room ${roomNumber} is locked. Complete Room ${roomNumber - 1} with your team first.`)
+        }
+      }
       const roomId = await joinTeamRoom(socket, teamCode, roomNumber)
       if (roomNumber === 1) startTeamRace(teamCode)
-      io.to(`team-${teamCode}`).emit('navigate_room', {
-        roomNumber,
-        teamCode,
-        username: getPlayerName(socket.data.user),
-        state: getTeamSharedState(teamCode),
-      })
+
+        // أرسلي حدث التنقل للاعب الذي أنجز الطلب فقط
+socket.emit('navigate_room', {
+  roomNumber,
+  teamCode,
+  username: getPlayerName(socket.data.user),
+  state: getTeamSharedState(teamCode) ?? {
+    currentRoom: roomNumber,
+    completedRooms: [],
+    score: 0,
+    inventory: [],
+  },
+});
+
+// إرسال إشعار خبر لبقية أعضاء الفريق في الشات/الدردشة
+socket.to(`team-${teamCode}`).emit('team:notification', {
+  message: `${getPlayerName(socket.data.user)} moved to Room ${roomNumber}!`
+});
+    
+      
       io.to(`team-${teamCode}`).emit('team:notice', {
         id: randomUUID(),
         message: `${getPlayerName(socket.data.user)} entered Room ${roomNumber}.`,

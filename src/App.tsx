@@ -793,7 +793,19 @@ function App() {
     puzzleSolvedSender.current = send
   }, [])
 
-  const handleSharedRoomState = useCallback((state: SharedRoomState) => {
+  const handleSharedRoomState = useCallback((state: SharedRoomState | null | undefined) => {
+    if (
+      !state ||
+      !Number.isInteger(state.currentRoom) ||
+      state.currentRoom < 1 ||
+      state.currentRoom > ROOM_CONFIG.length ||
+      !Array.isArray(state.completedRooms) ||
+      !Number.isSafeInteger(state.score) ||
+      !Array.isArray(state.inventory)
+    ) {
+      console.error('Ignored an invalid shared room state from the team server.')
+      return
+    }
     setProgress((current) => normalizeProgress({
       ...current,
       currentRoom: Math.max(current.currentRoom, state.currentRoom),
@@ -866,36 +878,36 @@ function App() {
   }, [player, playerKey, progress])
 
   const handleRoomOneEnter = useCallback(() => {
-    if (!progress.completedRooms.includes(1)) {
+    if (gameSession.mode !== 'team' && !progress.completedRooms.includes(1)) {
       navigate('/')
       return
     }
     void enterGameRoom(2)
-  }, [enterGameRoom, navigate, progress.completedRooms])
+  }, [enterGameRoom, gameSession.mode, navigate, progress.completedRooms])
 
   const handleRoomTwoEnter = useCallback(() => {
-    if (!progress.completedRooms.includes(2)) {
+    if (gameSession.mode !== 'team' && !progress.completedRooms.includes(2)) {
       navigate('/')
       return
     }
     void enterGameRoom(3)
-  }, [enterGameRoom, navigate, progress.completedRooms])
+  }, [enterGameRoom, gameSession.mode, navigate, progress.completedRooms])
 
   const handleRoomThreeEnter = useCallback(() => {
-    if (!progress.completedRooms.includes(3)) {
+    if (gameSession.mode !== 'team' && !progress.completedRooms.includes(3)) {
       navigate('/')
       return
     }
     void enterGameRoom(4)
-  }, [enterGameRoom, navigate, progress.completedRooms])
+  }, [enterGameRoom, gameSession.mode, navigate, progress.completedRooms])
 
   const handleRoomFourEnter = useCallback(() => {
-    if (!progress.completedRooms.includes(4)) {
+    if (gameSession.mode !== 'team' && !progress.completedRooms.includes(4)) {
       navigate('/')
       return
     }
     void enterGameRoom(5)
-  }, [enterGameRoom, navigate, progress.completedRooms])
+  }, [enterGameRoom, gameSession.mode, navigate, progress.completedRooms])
 
   const handleRoomFiveComplete = useCallback((details: { score: number; hintsUsed: number }) => {
     const previousBestKey = `escape-room-high-score:${playerKey ?? 'guest'}`

@@ -64,6 +64,18 @@ type ClientToServerEvents = {
 
 const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin
 
+function isSharedRoomState(value: unknown): value is SharedRoomState {
+  if (!value || typeof value !== 'object') return false
+  const state = value as Record<string, unknown>
+  return Number.isInteger(state.currentRoom) &&
+    Number(state.currentRoom) >= 1 &&
+    Number(state.currentRoom) <= 5 &&
+    Array.isArray(state.completedRooms) &&
+    Number.isSafeInteger(state.score) &&
+    Number(state.score) >= 0 &&
+    Array.isArray(state.inventory)
+}
+
 export default function GameModeSelector({
   value,
   roomNumber,
@@ -144,9 +156,12 @@ export default function GameModeSelector({
         }
       })
       nextSocket.on('disconnect', () => setConnected(false))
-      nextSocket.on('room:state', (state) => onSharedState(state))
-      nextSocket.on('navigate_room', ({ roomNumber: targetRoom, state }) => {
-        onTeamNavigate(targetRoom, state)
+      nextSocket.on('room:state', (state) => {
+        if (isSharedRoomState(state)) onSharedState(state)
+      })
+      nextSocket.on('navigate_room', (data) => {
+        if (!data || !Number.isInteger(data.roomNumber) || data.roomNumber < 1 || data.roomNumber > 5) return
+        onTeamNavigate(data.roomNumber, isSharedRoomState(data.state) ? data.state : null)
       })
       nextSocket.on('team:leaderboard', onTeamLeaderboard)
       nextSocket.on('team:notice', ({ message }) => onTeamNotice(message))
