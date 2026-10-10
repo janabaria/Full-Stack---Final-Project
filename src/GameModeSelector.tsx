@@ -157,7 +157,7 @@ export default function GameModeSelector({
       nextSocket.on('team:created', ({ teamCode: createdCode }) => {
         setPending(null)
         setStatus(`Team ${createdCode} is ready. Share the code with your teammates.`)
-        onChange({ mode: 'team', teamCode: createdCode, roomId: `team-${createdCode}-room-${roomNumber}` })
+        onChange({ mode: 'team', teamCode: createdCode, roomId: `team-${createdCode}-room-${roomNumberRef.current}` })
       })
       nextSocket.on('team:error', ({ message }) => {
         pendingCode.current = ''
@@ -172,7 +172,7 @@ export default function GameModeSelector({
         setPending(null)
         setError('')
         setStatus(`Joined team ${joinedCode}.`)
-        onChange({ mode: 'team', teamCode: joinedCode, roomId: `team-${joinedCode}-room-${roomNumber}` })
+        onChange({ mode: 'team', teamCode: joinedCode, roomId: `team-${joinedCode}-room-${roomNumberRef.current}` })
       })
       nextSocket.on('quick-match:waiting', ({ message }) => {
         setPending('quick')
@@ -182,7 +182,7 @@ export default function GameModeSelector({
         setPending(null)
         setError('')
         setStatus(`Quick match found. Team code: ${matchedCode}`)
-        onChange({ mode: 'team', teamCode: matchedCode, roomId: `team-${matchedCode}-room-${roomNumber}` })
+        onChange({ mode: 'team', teamCode: matchedCode, roomId: `team-${matchedCode}-room-${roomNumberRef.current}` })
       })
       nextSocket.connect()
       setSocket(nextSocket)
@@ -212,7 +212,7 @@ export default function GameModeSelector({
       nextSocket?.disconnect()
       if (socketRef.current === nextSocket) socketRef.current = null
     }
-  }, [onChange, onSharedState, onTeamLeaderboard, onTeamNavigate, onTeamNotice, roomNumber, value.mode])
+  }, [onChange, onSharedState, onTeamLeaderboard, onTeamNavigate, onTeamNotice, value.mode])
 
   useEffect(() => {
     if (value.mode !== 'team') {
