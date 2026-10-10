@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import './Room3.css';
+import { usePreferences } from '../preferencesContext'
+import { translateRoomText } from '../roomTranslations'
 
 type Room3Props = {
   initialScore?: number
@@ -9,6 +11,8 @@ type Room3Props = {
 }
 
 export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, onBackHome }: Room3Props) => {
+  const { language } = usePreferences()
+  const tr = (text: string) => translateRoomText(text, language)
   const [activeModal, setActiveModal] = useState<string | null>(null);
   
   // Computer Sub-screens State
@@ -74,13 +78,17 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
     <div className="room3-page-container">
       <div className={`room3-game-canvas ${isAlarmActive || isGameOver ? 'alarm-active' : ''}`}>
         <button className="room3-home-link" type="button" onClick={onBackHome}>
-          ← ALL ROOMS
+          {tr('← ALL ROOMS')}
         </button>
         
         {/* Header Bar */}
         <div className="game-header">
-          <div className="timer-box">⏰ TIME: {formatTime(timeLeft)}</div>
-          <div className="inventory-box">🎒 INVENTORY: {hasKeycard ? '💳 Security Keycard' : 'Empty'} · SCORE {score.toLocaleString()}</div>
+          <span className="room-canvas-brand">
+            <img src="/images/mazora-logo-transparent.png" alt="MAZORA Escape Room Game Logo" />
+            <strong>MAZORA</strong>
+          </span>
+          <div className="timer-box">⏰ {tr('TIME:')} {formatTime(timeLeft)}</div>
+          <div className="inventory-box">🎒 {tr('INVENTORY:')} {hasKeycard ? `💳 ${tr('Security Keycard')}` : tr('Empty')} · {tr('SCORE')} {score.toLocaleString()}</div>
         </div>
 
         {/* 🚪 Door Opening Animated Light Overlay */}
@@ -94,7 +102,7 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
             setComputerScreen('menu');
             setFeedbackMsg('');
           }}
-          title="Inspect Terminal"
+          title={tr('Inspect Terminal')}
         />
 
         <button
@@ -103,7 +111,7 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
             setActiveModal('safe');
             setFeedbackMsg('');
           }}
-          title="Inspect Safe"
+          title={tr('Inspect Safe')}
         />
 
         <button
@@ -112,16 +120,16 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
             setActiveModal('door');
             setFeedbackMsg('');
           }}
-          title="Inspect Exit Door"
+          title={tr('Inspect Exit Door')}
         />
 
         {/* Game Over Modal */}
         {isGameOver && (
           <div className="room3-modal-overlay alarm-border">
-            <h3 style={{ color: '#ef4444' }}>🚨 SYSTEM LOCKDOWN!</h3>
-            <p>Time expired! The security alarm sealed all exits permanently.</p>
-            <button className="room3-modal-close-btn" style={{ backgroundColor: '#ef4444' }} onClick={() => window.location.reload()}>
-              🔄 Retry Mission
+            <h3 style={{ color: '#ef4444' }}>🚨 {tr('SYSTEM LOCKDOWN!')}</h3>
+            <p>{tr('Time expired! The security alarm sealed all exits permanently.')}</p>
+            <button className="room3-modal-close-btn" onClick={() => window.location.reload()}>
+              🔄 {tr('Retry Mission')}
             </button>
           </div>
         )}
@@ -129,25 +137,25 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
         {/* 1. Computer Modal */}
         {activeModal === 'computer' && !isGameOver && (
           <div className="room3-modal-overlay">
-            <h3>🖥️ Workstation OS v3.4</h3>
+            <h3>🖥️ {tr('Workstation OS v3.4')}</h3>
             
             {computerScreen === 'menu' && (
               <div>
-                <p>Select a system file to analyze:</p>
+                <p>{tr('Select a system file to analyze:')}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', margin: '15px 0' }}>
                   <button 
                     className="keypad-btn" 
                     onClick={() => setComputerScreen('riddle')}
                     style={{ textAlign: 'left', padding: '12px 16px' }}
                   >
-                    📁 Encrypted_Passcode.txt
+                    {tr('📁 Encrypted_Passcode.txt')}
                   </button>
                   <button 
                     className="keypad-btn" 
                     onClick={() => setComputerScreen('logs')}
                     style={{ textAlign: 'left', padding: '12px 16px' }}
                   >
-                    📄 System_Security_Logs.log
+                    {tr('📄 System_Security_Logs.log')}
                   </button>
                 </div>
               </div>
@@ -155,7 +163,7 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
 
             {computerScreen === 'riddle' && (
               <div>
-                <p>Decoding Encrypted File...</p>
+                <p>{tr('Decoding Encrypted File...')}</p>
                 <div style={{
                   background: '#0d1117',
                   color: '#38bdf8',
@@ -167,25 +175,25 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
                   marginBottom: '15px',
                   lineHeight: '1.6'
                 }}>
-                  &gt; CLUE MATRIX (4-Digit Passcode):<br/>
-                  &gt; Digit 1: Number of desk screens + 4<br/>
-                  &gt; Digit 2: The largest prime number before 5<br/>
-                  &gt; Digit 3: Result of (9 ÷ 3) x 3<br/>
-                  &gt; Digit 4: Square root of 4 (√4)
+                  {tr('> CLUE MATRIX (4-Digit Passcode):')}<br/>
+                  {tr('> Digit 1: Number of desk screens + 4')}<br/>
+                  {tr('> Digit 2: The largest prime number before 5')}<br/>
+                  {tr('> Digit 3: Result of (9 ÷ 3) x 3')}<br/>
+                  {tr('> Digit 4: Square root of 4 (√4)')}
                 </div>
                 <button 
                   className="room3-modal-close-btn" 
-                  style={{ marginRight: '10px', backgroundColor: '#7000ff' }} 
+                  style={{ marginRight: '10px' }}
                   onClick={() => setComputerScreen('menu')}
                 >
-                  ⬅ Back to Menu
+                  ⬅ {tr('Back to Menu')}
                 </button>
               </div>
             )}
 
             {computerScreen === 'logs' && (
               <div>
-                <p>System Security Log History:</p>
+                <p>{tr('System Security Log History:')}</p>
                 <div style={{
                   background: '#0d1117',
                   color: '#a7f3d0',
@@ -197,22 +205,22 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
                   marginBottom: '15px',
                   lineHeight: '1.5'
                 }}>
-                  [14:02] Security breach detected.<br/>
-                  [14:05] Vault Safe auto-locked.<br/>
-                  [14:10] Security Keycard moved inside Heavy Vault.
+                  {tr('[14:02] Security breach detected.')}<br/>
+                  {tr('[14:05] Vault Safe auto-locked.')}<br/>
+                  {tr('[14:10] Security Keycard moved inside Heavy Vault.')}
                 </div>
                 <button 
                   className="room3-modal-close-btn" 
-                  style={{ marginRight: '10px', backgroundColor: '#7000ff' }} 
+                  style={{ marginRight: '10px' }}
                   onClick={() => setComputerScreen('menu')}
                 >
-                  ⬅ Back to Menu
+                  ⬅ {tr('Back to Menu')}
                 </button>
               </div>
             )}
 
             <button className="room3-modal-close-btn" onClick={() => setActiveModal(null)}>
-              Close
+              {tr('Close')}
             </button>
           </div>
         )}
@@ -220,10 +228,10 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
         {/* 2. Safe Modal */}
         {activeModal === 'safe' && !isGameOver && (
           <div className="room3-modal-overlay">
-            <h3>🔒 Heavy Vault Safe</h3>
+            <h3>🔒 {tr('Heavy Vault Safe')}</h3>
             {!safeUnlocked ? (
               <>
-                <p>Enter 4-digit vault passcode:</p>
+                <p>{tr('Enter 4-digit vault passcode:')}</p>
                 <div className="keypad-container">
                   <div className="keypad-display">{safeInput.padEnd(4, '_')}</div>
                   <div className="keypad-grid">
@@ -232,26 +240,26 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
                         {num}
                       </button>
                     ))}
-                    <button className="keypad-btn" style={{ background: '#881337' }} onClick={handleClear}>C</button>
+                    <button className="keypad-btn keypad-btn-clear" onClick={handleClear}>C</button>
                     <button className="keypad-btn" onClick={() => handleNumpadPress('0')}>0</button>
-                    <button className="keypad-btn" style={{ background: '#16a34a' }} onClick={handleSubmitSafeCode}>✓</button>
+                    <button className="keypad-btn keypad-btn-submit" onClick={handleSubmitSafeCode}>✓</button>
                   </div>
                 </div>
               </>
             ) : (
               <p style={{ color: '#4ade80', fontWeight: 'bold' }}>
-                🔓 Vault Opened! Security Keycard collected.
+                🔓 {tr('Vault Opened! Security Keycard collected.')}
               </p>
             )}
             
             {feedbackMsg && (
               <p style={{ color: safeUnlocked ? '#4ade80' : '#f87171', fontSize: '0.85rem' }}>
-                {feedbackMsg}
+                {tr(feedbackMsg)}
               </p>
             )}
 
             <button className="room3-modal-close-btn" onClick={() => setActiveModal(null)}>
-              Close
+              {tr('Close')}
             </button>
           </div>
         )}
@@ -259,33 +267,33 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
         {/* 3. Door Modal */}
         {activeModal === 'door' && !isGameOver && (
           <div className="room3-modal-overlay">
-            <h3>🚪 Blast Exit Door</h3>
+            <h3>🚪 {tr('Blast Exit Door')}</h3>
             {doorUnlocked ? (
               <div>
-                <p style={{ color: '#4ade80', fontSize: '1.2rem', fontWeight: 'bold' }}>🎉 MISSION ACCOMPLISHED!</p>
-                <p>You bypassed the security systems and cleared Room 03.</p>
+                <p style={{ color: '#4ade80', fontSize: '1.2rem', fontWeight: 'bold' }}>🎉 {tr('MISSION ACCOMPLISHED!')}</p>
+                <p>{tr('You bypassed the security systems and cleared Room 03.')}</p>
                 <button
                   className="room3-modal-close-btn room3-continue-btn"
                   onClick={onEnterFinalRoom}
                   type="button"
                 >
-                  ENTER ROOM 04 →
+                  {tr('ENTER ROOM 04')} →
                 </button>
               </div>
             ) : (
               <div>
-                <p>The electronic lock requires level-4 access clearance.</p>
+                <p>{tr('The electronic lock requires level-4 access clearance.')}</p>
                 {hasKeycard ? (
                   <button
                     style={{
                       padding: '10px 20px',
-                      backgroundColor: '#16a34a',
+                      backgroundColor: '#8b6a42',
                       color: '#fff',
                       border: 'none',
                       borderRadius: '8px',
                       cursor: 'pointer',
                       fontWeight: 'bold',
-                      boxShadow: '0 0 15px rgba(34, 197, 94, 0.4)',
+                      boxShadow: '0 0 15px rgba(217, 189, 139, 0.3)',
                       marginTop: '10px'
                     }}
                     onClick={() => {
@@ -294,18 +302,18 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
                       setScore((current) => current + 500 + timeLeft);
                     }}
                   >
-                    💳 Swipe Security Keycard
+                    💳 {tr('Swipe Security Keycard')}
                   </button>
                 ) : (
                   <p style={{ color: '#f87171', fontSize: '0.85rem', marginTop: '10px' }}>
-                    🔒 Access Denied! Security Keycard is required.
+                    🔒 {tr('Access Denied! Security Keycard is required.')}
                   </p>
                 )}
               </div>
             )}
             <br />
             <button className="room3-modal-close-btn" onClick={() => setActiveModal(null)}>
-              Close
+              {tr('Close')}
             </button>
           </div>
         )}

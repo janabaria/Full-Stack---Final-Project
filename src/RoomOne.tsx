@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './RoomOne.css'
+import { usePreferences } from './preferencesContext'
+import { translateRoomText } from './roomTranslations'
 
 const messageWords = [
   { id: 'truth', text: 'TRUTH' },
@@ -10,6 +12,17 @@ const messageWords = [
   { id: 'hidden', text: 'HIDDEN' },
   { id: 'is', text: 'IS' },
 ]
+const arabicMessageWords: Record<string, string> = {
+  truth: 'الحقيقة',
+  clock: 'الساعة',
+  'the-first': 'تلك',
+  behind: 'وراء',
+  'the-last': 'عقارب',
+  hidden: 'محجوبة',
+  is: 'تكون',
+}
+
+const ROOM_TIME_LIMIT_SECONDS = 2 * 60
 
 const hints = [
   'Look carefully at the objects around the desk.',
@@ -36,7 +49,11 @@ function RoomOne({
   onBackHome?: () => void
   onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
 }) {
-  const [secondsLeft, setSecondsLeft] = useState(15 * 60)
+  const { language } = usePreferences()
+  const tr = (text: string) => translateRoomText(text, language)
+  const wordLabel = (id: string, englishText: string) =>
+    language === 'ar' ? arabicMessageWords[id] ?? englishText : englishText
+  const [secondsLeft, setSecondsLeft] = useState(ROOM_TIME_LIMIT_SECONDS)
   const [score, setScore] = useState(750)
   const [modal, setModal] = useState<ModalName>(null)
   const [hintCount, setHintCount] = useState(0)
@@ -92,7 +109,7 @@ function RoomOne({
     (word) => !slots.includes(word.id),
   )
   const progress = roomComplete ? 7 : puzzleSolved ? 4 : 1
-  const displayedRoom = 'ROOM 01'
+  const displayedRoom = tr('ROOM 01')
 
   function placeWord(wordId: string, targetIndex?: number) {
     setSlots((current) => {
@@ -117,11 +134,17 @@ function RoomOne({
   }
 
   function checkMessage() {
-    const arranged = slots
-      .map((wordId) => messageWords.find((word) => word.id === wordId)?.text)
-      .join(' ')
-
-    if (arranged !== 'THE TRUTH IS HIDDEN BEHIND THE CLOCK') {
+    const expectedOrder = ['the-first', 'truth', 'is', 'hidden', 'behind', 'the-last', 'clock']
+    const englishTheWordsAreInterchangeable =
+      language === 'en' &&
+      ((slots[0] === 'the-first' && slots[5] === 'the-last') ||
+        (slots[0] === 'the-last' && slots[5] === 'the-first'))
+    const isCorrect = slots.every((wordId, index) =>
+      englishTheWordsAreInterchangeable && (index === 0 || index === 5)
+        ? true
+        : wordId === expectedOrder[index],
+    )
+    if (!isCorrect) {
       setPuzzleError(true)
       return
     }
@@ -168,7 +191,7 @@ function RoomOne({
   }, [enteredCode, secondsLeft])
 
   function restartRoom() {
-    setSecondsLeft(15 * 60)
+    setSecondsLeft(ROOM_TIME_LIMIT_SECONDS)
     setScore(750)
     setHintCount(0)
     setHintText('')
@@ -209,26 +232,18 @@ function RoomOne({
   return (
     <main className="game-shell">
       <header className="topbar">
-        <a className="brand" href="#room-01" aria-label="Escape Room Online">
-          <span className="brand-mark" aria-hidden="true">
-            E
+        <a className="brand" href="#room-01" aria-label="MAZORA">
+          <span className="brand-mark">
+            <img src="/images/mazora-logo-transparent.png" alt="MAZORA Escape Room Game Logo" />
           </span>
           <span>
-            <span className="brand-name">ESCAPE ROOM</span>
-            <span className="brand-caption">ONLINE EXPERIENCE</span>
+            <span className="brand-name">MAZORA</span>
+            <span className="brand-caption">{tr('PUZZLE ESCAPE ROOM')}</span>
           </span>
         </a>
         <div className="topbar-right">
           <span className="live-indicator">
-            <i /> LIVE SESSION
-          </span>
-          <span
-            className="icon-button sound-button"
-            aria-hidden="true"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M11 5 6 9H3v6h3l5 4V5Zm5 4 5 6m0-6-5 6" />
-            </svg>
+            <i /> {tr('LIVE SESSION')}
           </span>
           <span
             className="avatar-button"
@@ -239,18 +254,18 @@ function RoomOne({
         </div>
       </header>
 
-      <section className="mission-bar" aria-label="Room status">
+      <section className="mission-bar" aria-label={tr('Room status')}>
         <div className="room-identity">
-          <span className="eyebrow">CURRENT LOCATION</span>
+          <span className="eyebrow">{tr('CURRENT LOCATION')}</span>
           <strong>{displayedRoom}</strong>
           <span className="identity-divider" />
-          <span className="room-name">THE MISSING MESSAGE</span>
+          <span className="room-name">{tr('THE MISSING MESSAGE')}</span>
         </div>
         <div className="game-stats">
           <div className="stat timer-stat">
             <span className="stat-icon timer-icon" aria-hidden="true">◷</span>
             <span>
-              <span className="stat-label">TIME REMAINING</span>
+              <span className="stat-label">{tr('TIME REMAINING')}</span>
               <strong className={secondsLeft < 60 ? 'urgent-time' : ''}>
                 {formattedTime}
               </strong>
@@ -259,12 +274,12 @@ function RoomOne({
           <div className="stat">
             <span className="stat-icon score-icon" aria-hidden="true">✧</span>
             <span>
-              <span className="stat-label">YOUR SCORE</span>
-              <strong>{score.toLocaleString()} <small>PTS</small></strong>
+              <span className="stat-label">{tr('YOUR SCORE')}</span>
+              <strong>{score.toLocaleString()} <small>{tr('PTS')}</small></strong>
             </span>
           </div>
           <div className="stat progress-stat">
-            <span className="stat-label">PROGRESS</span>
+            <span className="stat-label">{tr('PROGRESS')}</span>
             <strong>{progress} <small>/ 7</small></strong>
           </div>
         </div>
@@ -275,19 +290,19 @@ function RoomOne({
             onClick={useHint}
             disabled={hintCount >= hints.length || roomComplete}
           >
-            <span aria-hidden="true">✧</span> HINT · -50 PTS
+            <span aria-hidden="true">✧</span> {tr('HINT · -50 PTS')}
           </button>
           <button
             className="button button-menu"
             type="button"
             onClick={() => setModal('menu')}
           >
-            ESCAPE MENU <span aria-hidden="true">☰</span>
+            {tr('ESCAPE MENU')} <span aria-hidden="true">☰</span>
           </button>
         </div>
       </section>
 
-      <section className="scene-wrap" aria-label="The mysterious office">
+      <section className="scene-wrap" aria-label={tr('The mysterious office')}>
         <div className={`room-scene ${doorOpen ? 'doorway-lit' : ''}`}>
           <div className="room-ceiling" />
           <div className="wall-panels" />
@@ -304,7 +319,7 @@ function RoomOne({
           <button
             className="scene-object object-bookshelf"
             type="button"
-            aria-label="Inspect the bookshelf"
+            aria-label={tr('Inspect the bookshelf')}
             onClick={() => inspect('Bookshelf')}
           >
             <span className="bookshelf-top" />
@@ -328,13 +343,13 @@ function RoomOne({
               </span>
             </span>
             <span className="bookshelf-foot" />
-            <span className="inspect-label">INSPECT</span>
+            <span className="inspect-label">{tr('INSPECT')}</span>
           </button>
 
           <button
             className="scene-object object-clock"
             type="button"
-            aria-label="Inspect the antique clock"
+            aria-label={tr('Inspect the antique clock')}
             onClick={() =>
               puzzleSolved
                 ? inspect('Antique clock — a hidden code, 4827, was found in the message.')
@@ -348,19 +363,19 @@ function RoomOne({
                 <i className="clock-pin" />
               </span>
             </span>
-            <span className="inspect-label">INSPECT</span>
+            <span className="inspect-label">{tr('INSPECT')}</span>
           </button>
 
           <button
             className={`scene-object object-door ${doorOpen ? 'is-open' : ''}`}
             type="button"
-            aria-label={puzzleSolved ? 'Inspect the locked door' : 'The door is locked'}
+            aria-label={tr(puzzleSolved ? 'Inspect the locked door' : 'The door is locked')}
             onClick={() => puzzleSolved && setModal('keypad')}
             disabled={!puzzleSolved || roomComplete}
           >
             <span className="doorway">
               <span className="door-glow-behind">
-                <span className="next-room-light">ROOM<br />02</span>
+                <span className="next-room-light">{tr('ROOM 02')}</span>
               </span>
               <span className="door-panel-art">
                 <span className="door-inset" />
@@ -371,7 +386,7 @@ function RoomOne({
                 <span className="door-knob" />
               </span>
             </span>
-            <span className="inspect-label">{puzzleSolved ? 'UNLOCK' : 'LOCKED'}</span>
+            <span className="inspect-label">{tr(puzzleSolved ? 'UNLOCK' : 'LOCKED')}</span>
           </button>
 
           <div className="desk">
@@ -392,29 +407,29 @@ function RoomOne({
           <button
             className="scene-object object-desk"
             type="button"
-            aria-label="Inspect the locked desk drawer"
+            aria-label={tr('Inspect the locked desk drawer')}
             onClick={() => inspect('Desk and locked drawer')}
           >
-            <span className="inspect-label">INSPECT</span>
+            <span className="inspect-label">{tr('INSPECT')}</span>
           </button>
 
           <button
             className="scene-object object-lamp"
             type="button"
-            aria-label="Inspect the desk lamp"
+            aria-label={tr('Inspect the desk lamp')}
             onClick={() => inspect('Desk lamp')}
           >
             <span className="lamp-shade" />
             <span className="lamp-stem" />
             <span className="lamp-base" />
             <span className="lamp-beam" />
-            <span className="inspect-label">INSPECT</span>
+            <span className="inspect-label">{tr('INSPECT')}</span>
           </button>
 
           <button
             className="scene-object object-letter"
             type="button"
-            aria-label={puzzleSolved ? 'Read the decrypted message' : 'Inspect the mysterious letter'}
+            aria-label={tr(puzzleSolved ? 'Read the decrypted message' : 'Inspect the mysterious letter')}
             onClick={() => setModal('puzzle')}
           >
             <span className="letter-art">
@@ -422,13 +437,13 @@ function RoomOne({
               <i className="letter-line" />
               <i className="letter-line short" />
             </span>
-            <span className="inspect-label">{puzzleSolved ? 'READ' : 'INSPECT'}</span>
+            <span className="inspect-label">{tr(puzzleSolved ? 'READ' : 'INSPECT')}</span>
           </button>
 
           <button
             className="scene-object object-typewriter"
             type="button"
-            aria-label="Inspect the typewriter"
+            aria-label={tr('Inspect the typewriter')}
             onClick={() => inspect('Typewriter')}
           >
             <span className="typewriter-paper" />
@@ -436,54 +451,54 @@ function RoomOne({
               <i className="typewriter-keys" />
               <i className="typewriter-roller" />
             </span>
-            <span className="inspect-label">INSPECT</span>
+            <span className="inspect-label">{tr('INSPECT')}</span>
           </button>
 
           <button
             className="scene-object object-photos"
             type="button"
-            aria-label="Inspect the old photographs"
+            aria-label={tr('Inspect the old photographs')}
             onClick={() => inspect('Old photographs')}
           >
             <span className="photo-frame photo-one"><i /></span>
             <span className="photo-frame photo-two"><i /></span>
-            <span className="inspect-label">INSPECT</span>
+            <span className="inspect-label">{tr('INSPECT')}</span>
           </button>
 
           <span className="scene-vignette" />
           {accessGranted && (
             <div className="access-granted-toast" role="status">
-              <strong>ACCESS GRANTED</strong>
-              <span>The lock releases with a heavy click.</span>
+              <strong>{tr('ACCESS GRANTED')}</strong>
+              <span>{tr('The lock releases with a heavy click.')}</span>
             </div>
           )}
           <div className="scene-caption">
             <span className="caption-mark" />
-            <span>AN OFFICE LEFT IN HASTE</span>
+            <span>{tr('AN OFFICE LEFT IN HASTE')}</span>
           </div>
           <div className="scene-hotkey">
-            <span className="keycap">ESC</span> MENU
+            <span className="keycap">ESC</span> {tr('MENU')}
           </div>
         </div>
       </section>
 
       <footer className="room-footer">
         <div className="chapter-progress">
-          <span className="eyebrow">YOUR JOURNEY</span>
-          <div className="room-steps" aria-label="Room progression">
+          <span className="eyebrow">{tr('YOUR JOURNEY')}</span>
+          <div className="room-steps" aria-label={tr('Room progression')}>
             <span className={`room-step active ${roomComplete ? 'finished' : ''}`}>
-              <i>{roomComplete ? '✓' : '01'}</i> ROOM 01
+              <i>{roomComplete ? '✓' : '01'}</i> {tr('ROOM 01')}
             </span>
             <span className="step-line" />
             {[2, 3, 4, 5].map((room) => (
               <span className={`room-step ${room === 2 && roomComplete ? 'unlocked' : 'locked'}`} key={room}>
-                <i>{room === 2 && roomComplete ? '✓' : '⌑'}</i> ROOM 0{room}
+                <i>{room === 2 && roomComplete ? '✓' : '⌑'}</i> {tr(`ROOM 0${room}`)}
               </span>
             ))}
           </div>
         </div>
         <div className="footer-note">
-          <span className="status-dot" /> ALL PROGRESS SAVED LOCALLY
+          <span className="status-dot" /> {tr('ALL PROGRESS SAVED LOCALLY')}
         </div>
       </footer>
 
@@ -504,43 +519,43 @@ function RoomOne({
               <button
                 className="modal-close"
                 type="button"
-                aria-label="Close dialog"
+                aria-label={tr('Close dialog')}
                 onClick={closeModal}
               >
                 ×
               </button>
             )}
             <span className="modal-kicker">
-              {activeModal === 'puzzle' && (puzzleSolved ? 'MESSAGE RECOVERED' : 'EVIDENCE · 01')}
-              {activeModal === 'keypad' && 'ACCESS CONTROL'}
-              {activeModal === 'menu' && 'PAUSE MENU'}
-              {activeModal === 'hint' && 'FIELD NOTES'}
-              {activeModal === 'inspect' && 'OBJECT FOUND'}
-              {activeModal === 'complete' && 'CASE FILE · CLOSED'}
-              {activeModal === 'gameover' && 'TIME EXPIRED'}
-              {activeModal === 'roomtwo' && 'NEXT CHAPTER'}
+              {activeModal === 'puzzle' && tr(puzzleSolved ? 'MESSAGE RECOVERED' : 'EVIDENCE · 01')}
+              {activeModal === 'keypad' && tr('ACCESS CONTROL')}
+              {activeModal === 'menu' && tr('PAUSE MENU')}
+              {activeModal === 'hint' && tr('FIELD NOTES')}
+              {activeModal === 'inspect' && tr('OBJECT FOUND')}
+              {activeModal === 'complete' && tr('CASE FILE · CLOSED')}
+              {activeModal === 'gameover' && tr('TIME EXPIRED')}
+              {activeModal === 'roomtwo' && tr('NEXT CHAPTER')}
             </span>
 
             {activeModal === 'puzzle' && (
               <div className="puzzle-content">
-                <h1 id="modal-title">{puzzleSolved ? 'MESSAGE DECRYPTED' : 'THE MISSING MESSAGE'}</h1>
+                <h1 id="modal-title">{tr(puzzleSolved ? 'MESSAGE DECRYPTED' : 'THE MISSING MESSAGE')}</h1>
                 {puzzleSolved ? (
                   <div className="decrypted-message">
-                    <p>You found the hidden code.</p>
+                    <p>{tr('You found the hidden code.')}</p>
                     <span className="code-reveal">4 <i>·</i> 8 <i>·</i> 2 <i>·</i> 7</span>
-                    <span className="code-caption">ACCESS CODE DISCOVERED</span>
-                    <p className="modal-hint-copy">The antique clock has more to tell you. Find a way out.</p>
+                    <span className="code-caption">{tr('ACCESS CODE DISCOVERED')}</span>
+                    <p className="modal-hint-copy">{tr('The antique clock has more to tell you. Find a way out.')}</p>
                     <button className="button button-primary" type="button" onClick={() => setModal(null)}>
-                      RETURN TO THE ROOM
+                      {tr('RETURN TO THE ROOM')}
                     </button>
                   </div>
                 ) : (
                   <>
                     <p className="modal-description">
-                      Someone left you a message... but the words are out of order.
+                      {tr('Someone left you a message... but the words are out of order.')}
                     </p>
-                    <p className="puzzle-instruction">DRAG WORDS INTO THE RIGHT ORDER</p>
-                    <div className="word-slots" aria-label="Message, arranged word slots">
+                    <p className="puzzle-instruction">{tr('DRAG WORDS INTO THE RIGHT ORDER')}</p>
+                    <div className="word-slots" aria-label={tr('Message, arranged word slots')}>
                       {slots.map((wordId, index) => {
                         const word = messageWords.find((item) => item.id === wordId)
                         return (
@@ -571,9 +586,9 @@ function RoomOne({
                                 }}
                                 onDragEnd={() => setDraggedItem('')}
                                 onClick={() => placeWord(word.id)}
-                                aria-label={`${word.text}, position ${index + 1}. Click to remove.`}
+                                aria-label={`${wordLabel(word.id, word.text)}, ${language === 'ar' ? 'الموضع' : 'position'} ${index + 1}. ${tr('Click to remove.')}`}
                               >
-                                {word.text}
+                                {wordLabel(word.id, word.text)}
                               </button>
                             ) : (
                               <span className="slot-number">0{index + 1}</span>
@@ -582,7 +597,7 @@ function RoomOne({
                         )
                       })}
                     </div>
-                    <p className="bank-label">SCATTERED WORDS <span>· CLICK OR DRAG</span></p>
+                    <p className="bank-label">{tr('SCATTERED WORDS')} <span>{tr('· CLICK OR DRAG')}</span></p>
                     <div className="word-bank">
                       {wordBank.map((word) => (
                         <button
@@ -597,12 +612,12 @@ function RoomOne({
                           onDragEnd={() => setDraggedItem('')}
                           onClick={() => placeWord(word.id)}
                         >
-                          {word.text}
+                          {wordLabel(word.id, word.text)}
                         </button>
                       ))}
                     </div>
                     {puzzleError && (
-                      <p className="feedback-error" role="alert">Something is wrong... Try again.</p>
+                      <p className="feedback-error" role="alert">{tr('Something is wrong... Try again.')}</p>
                     )}
                     <button
                       className="button button-primary check-message"
@@ -610,7 +625,7 @@ function RoomOne({
                       disabled={slots.some((wordId) => wordId === null)}
                       onClick={checkMessage}
                     >
-                      CHECK MESSAGE <span aria-hidden="true">→</span>
+                      {tr('CHECK MESSAGE')} <span aria-hidden="true">→</span>
                     </button>
                   </>
                 )}
@@ -619,8 +634,8 @@ function RoomOne({
 
             {activeModal === 'keypad' && (
               <div className="keypad-content">
-                <h1 id="modal-title">LOCKED DOOR</h1>
-                <p className="modal-description">Enter the 4-digit access code.</p>
+                <h1 id="modal-title">{tr('LOCKED DOOR')}</h1>
+                <p className="modal-description">{tr('Enter the 4-digit access code.')}</p>
                 <div className={`code-display ${codeError ? 'code-denied' : ''}`} aria-label={`${enteredCode.length} of 4 digits entered`}>
                   {[0, 1, 2, 3].map((digit) => (
                     <span key={digit} className={enteredCode.length > digit ? 'digit-filled' : ''}>
@@ -634,7 +649,7 @@ function RoomOne({
                       type="button"
                       className={`keypad-key ${key === 'enter' ? 'keypad-enter' : ''} ${key === 'back' ? 'keypad-back' : ''}`}
                       key={key}
-                      aria-label={key === 'back' ? 'Delete last digit' : key === 'enter' ? 'Enter access code' : key}
+                      aria-label={key === 'back' ? tr('Delete last digit') : key === 'enter' ? tr('Enter access code') : key}
                       onClick={() => {
                         if (key === 'back') {
                           setEnteredCode((current) => current.slice(0, -1))
@@ -652,8 +667,8 @@ function RoomOne({
                 </div>
                 {codeError && (
                   <div className="access-denied" role="alert">
-                    <strong>ACCESS DENIED</strong>
-                    <span>Incorrect code. Search the room for more clues.</span>
+                    <strong>{tr('ACCESS DENIED')}</strong>
+                    <span>{tr('Incorrect code. Search the room for more clues.')}</span>
                   </div>
                 )}
               </div>
@@ -661,18 +676,18 @@ function RoomOne({
 
             {activeModal === 'menu' && (
               <div className="simple-modal-content">
-                <h1 id="modal-title">TAKE A BREATH.</h1>
-                <p className="modal-description">The clock is still running. Your progress is safe.</p>
+                <h1 id="modal-title">{tr('TAKE A BREATH.')}</h1>
+                <p className="modal-description">{tr('The clock is still running. Your progress is safe.')}</p>
                 <div className="menu-options">
                   <button className="button button-primary" type="button" onClick={() => setModal(null)}>
-                    RETURN TO THE ROOM
+                    {tr('RETURN TO THE ROOM')}
                   </button>
                   <button className="button button-secondary" type="button" onClick={restartRoom}>
-                    RESTART ROOM 01
+                    {tr('RESTART ROOM 01')}
                   </button>
                   {onBackHome && (
                     <button className="button button-secondary" type="button" onClick={onBackHome}>
-                      BACK TO HOME
+                      {tr('BACK TO HOME')}
                     </button>
                   )}
                 </div>
@@ -681,21 +696,21 @@ function RoomOne({
 
             {activeModal === 'hint' && (
               <div className="simple-modal-content">
-                <h1 id="modal-title">A NUDGE, NOT AN ANSWER.</h1>
-                <p className="modal-description">One hint used · 50 points deducted.</p>
-                <div className="hint-card"><span>FIELD NOTE 0{hintCount}</span><p>{hintText}</p></div>
-                <p className="hint-remaining">{hints.length - hintCount} {hints.length - hintCount === 1 ? 'hint' : 'hints'} remaining</p>
+                <h1 id="modal-title">{tr('A NUDGE, NOT AN ANSWER.')}</h1>
+                <p className="modal-description">{tr('One hint used · 50 points deducted.')}</p>
+                <div className="hint-card"><span>{tr('FIELD NOTE')} 0{hintCount}</span><p>{tr(hintText)}</p></div>
+                <p className="hint-remaining">{hints.length - hintCount} {tr(hints.length - hintCount === 1 ? 'hint' : 'hints')} {tr('remaining')}</p>
                 <button className="button button-primary" type="button" onClick={() => setModal(null)}>
-                  BACK TO INVESTIGATING
+                  {tr('BACK TO INVESTIGATING')}
                 </button>
               </div>
             )}
 
             {activeModal === 'inspect' && (
               <div className="simple-modal-content">
-                <h1 id="modal-title">{inspectedObject.toUpperCase()}</h1>
+                <h1 id="modal-title">{tr(inspectedObject)}</h1>
                 <p className="modal-description">
-                  {inspectedObject.includes('4827')
+                  {tr(inspectedObject.includes('4827')
                     ? 'The letter revealed the code. It may be what the locked door needs.'
                     : inspectedObject === 'Desk and locked drawer'
                       ? 'The drawer is locked tight. Something in the room may hold its key.'
@@ -707,10 +722,10 @@ function RoomOne({
                             ? 'Old books crowd the shelves. Their spines are faded and out of order.'
                             : inspectedObject === 'Desk lamp'
                               ? 'A pool of warm light falls across a handwritten letter on the desk.'
-                              : 'A brass clock keeps ticking. Its hands seem to have stopped at midnight.'}
+                              : 'A brass clock keeps ticking. Its hands seem to have stopped at midnight.')}
                 </p>
                 <button className="button button-primary" type="button" onClick={() => setModal(null)}>
-                  CONTINUE SEARCHING
+                  {tr('CONTINUE SEARCHING')}
                 </button>
               </div>
             )}
@@ -718,21 +733,21 @@ function RoomOne({
             {activeModal === 'complete' && (
               <div className="complete-content">
                 <span className="complete-emblem">✦</span>
-                <h1 id="modal-title">ROOM 01 COMPLETE</h1>
-                <p className="complete-subtitle">THE MISSING MESSAGE</p>
-                <p className="modal-description">You solved the puzzle and unlocked the next room.</p>
-                <div className="completion-reward">+250 POINTS</div>
+                <h1 id="modal-title">{tr('ROOM 01 COMPLETE')}</h1>
+                <p className="complete-subtitle">{tr('THE MISSING MESSAGE')}</p>
+                <p className="modal-description">{tr('You solved the puzzle and unlocked the next room.')}</p>
+                <div className="completion-reward">{tr('+250 POINTS')}</div>
                 <div className="score-breakdown">
-                  <span><i>PUZZLE BONUS</i><strong>+100</strong></span>
-                  <span><i>TIME BONUS</i><strong>+{Math.floor(secondsLeft / 60) * 10}</strong></span>
-                  <span><i>DOOR UNLOCKED</i><strong>+150</strong></span>
-                  <span className="total-score"><i>TOTAL SCORE</i><strong>{score.toLocaleString()} PTS</strong></span>
+                  <span><i>{tr('PUZZLE BONUS')}</i><strong>+100</strong></span>
+                  <span><i>{tr('TIME BONUS')}</i><strong>+{Math.floor(secondsLeft / 60) * 10}</strong></span>
+                  <span><i>{tr('DOOR UNLOCKED')}</i><strong>+150</strong></span>
+                  <span className="total-score"><i>{tr('TOTAL SCORE')}</i><strong>{score.toLocaleString()} {tr('PTS')}</strong></span>
                 </div>
-                <div className="room-unlocked"><span>✧</span> ROOM 02 UNLOCKED</div>
+                <div className="room-unlocked"><span>✧</span> {tr('ROOM 02 UNLOCKED')}</div>
                 {roomTwoEntered ? (
                   <div className="room-two-placeholder">
-                    <strong>THE NEXT CHAPTER AWAITS</strong>
-                    <span>Room 02 is unlocked and ready to connect.</span>
+                    <strong>{tr('THE NEXT CHAPTER AWAITS')}</strong>
+                    <span>{tr('Room 02 is unlocked and ready to connect.')}</span>
                   </div>
                 ) : (
                   <button className="button button-primary enter-room-button" type="button" onClick={() => {
@@ -740,7 +755,7 @@ function RoomOne({
                     setModal('roomtwo')
                     onEnterRoomTwo?.()
                   }}>
-                    ENTER ROOM 02 <span aria-hidden="true">→</span>
+                    {tr('ENTER ROOM 02')} <span aria-hidden="true">→</span>
                   </button>
                 )}
               </div>
@@ -749,20 +764,20 @@ function RoomOne({
             {activeModal === 'gameover' && (
               <div className="simple-modal-content gameover-content">
                 <span className="gameover-mark">00:00</span>
-                <h1 id="modal-title">THE ROOM WENT DARK.</h1>
-                <p className="modal-description">Time ran out before you could escape. The room is ready for another attempt.</p>
+                <h1 id="modal-title">{tr('THE ROOM WENT DARK.')}</h1>
+                <p className="modal-description">{tr('Time ran out before you could escape. The room is ready for another attempt.')}</p>
                 <button className="button button-primary" type="button" onClick={restartRoom}>
-                  RESTART ROOM 01 <span aria-hidden="true">↻</span>
+                  {tr('RESTART ROOM 01')} <span aria-hidden="true">↻</span>
                 </button>
               </div>
             )}
 
             {activeModal === 'roomtwo' && (
               <div className="simple-modal-content">
-                <h1 id="modal-title">ROOM 02 IS UNLOCKED.</h1>
-                <p className="modal-description">The next chapter can now be connected here. Your Room 01 score is {score.toLocaleString()} points.</p>
+                <h1 id="modal-title">{tr('ROOM 02 IS UNLOCKED.')}</h1>
+                <p className="modal-description">{tr('The next chapter can now be connected here. Your Room 01 score is')} {score.toLocaleString()} {tr('points.')}</p>
                 <button className="button button-primary" type="button" onClick={() => setModal('complete')}>
-                  BACK TO CASE SUMMARY
+                  {tr('BACK TO CASE SUMMARY')}
                 </button>
               </div>
             )}

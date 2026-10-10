@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import './FinalRoom.css'
+import { usePreferences } from './preferencesContext'
+import { translateRoomText } from './roomTranslations'
 
 const accessCode = '4126'
 const hints = [
@@ -14,6 +16,8 @@ type FinalRoomProps = {
 }
 
 function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
+  const { language } = usePreferences()
+  const tr = (text: string) => translateRoomText(text, language)
   const [timeLeft, setTimeLeft] = useState(8 * 60)
   const [score, setScore] = useState(initialScore)
   const [code, setCode] = useState('')
@@ -71,12 +75,12 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
   return (
     <main className="final-room">
       <header className="final-room-header">
-        <a href="/" className="final-brand"><span>E</span> ESCAPE ROOM ONLINE</a>
+        <a href="/" className="final-brand"><span><img src="/images/mazora-logo-transparent.png" alt="MAZORA Escape Room Game Logo" /></span> MAZORA</a>
         <div className="final-room-stats">
-          <span>FINAL ROOM</span><strong>{formattedTime}</strong><strong>{score.toLocaleString()} PTS</strong>
+          <span>{tr('FINAL ROOM')}</span><strong>{formattedTime}</strong><strong>{score.toLocaleString()} {tr('PTS')}</strong>
         </div>
       </header>
-      <section className="vault-scene" aria-label="The final vault">
+      <section className="vault-scene" aria-label={tr('The final vault')}>
         <div className="vault-halo" />
         <div className={`vault-door ${complete ? 'vault-open' : ''}`}>
           <div className="vault-rings"><i /><i /><i /><span>✦</span></div>
@@ -87,15 +91,15 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
         <div className="vault-floor" />
         <div className="final-case">
           <div className="final-case-heading">
-            <span className="final-room-kicker">ROOM 05 <i /> THE LAST LOCK</span>
-            <h1>One final truth.</h1>
-            <p>The vault remembers every clue. Enter its four-digit code and make your escape.</p>
+            <span className="final-room-kicker">{tr('ROOM 05')} <i /> {tr('THE LAST LOCK')}</span>
+            <h1>{tr('One final truth.')}</h1>
+            <p>{tr('The vault remembers every clue. Enter its four-digit code and make your escape.')}</p>
           </div>
           <div className="final-clue">
-            <span>THE FINAL NOTE</span>
-            <p>“Four corners begin the sequence. A dozen follows; half a dozen brings it to its end.”</p>
+            <span>{tr('THE FINAL NOTE')}</span>
+            <p>{tr('“Four corners begin the sequence. A dozen follows; half a dozen brings it to its end.”')}</p>
           </div>
-          <div className="final-code-display" aria-label={`${code.length} of four digits entered`}>
+          <div className="final-code-display" aria-label={language === 'ar' ? `أُدخل ${code.length} من ٤ أرقام` : `${code.length} of four digits entered`}>
             {[0, 1, 2, 3].map((slot) => <i className={code.length > slot ? 'digit-on' : ''} key={slot}>{code.length > slot ? '●' : '○'}</i>)}
           </div>
           <div className="final-keypad">
@@ -103,7 +107,7 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
               <button
                 type="button"
                 key={key}
-                aria-label={key === '←' ? 'Clear code' : key === '✓' ? 'Unlock the final vault' : key}
+                aria-label={key === '←' ? tr('Clear code') : key === '✓' ? tr('Unlock the final vault') : key}
                 onClick={() => {
                   if (key === '←') {
                     setCode('')
@@ -117,27 +121,27 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
             ))}
           </div>
           <button className="final-hint-button" type="button" onClick={useHint} disabled={hintIndex >= hints.length}>
-            ✧ {hintIndex >= hints.length ? 'NO HINTS REMAINING' : 'REQUEST A HINT · -50 PTS'}
+            ✧ {tr(hintIndex >= hints.length ? 'NO HINTS REMAINING' : 'REQUEST A HINT · -50 PTS')}
           </button>
-          {message && <p className={`final-feedback ${message.startsWith('ACCESS') ? 'feedback-denied' : ''}`} role="status">{message}</p>}
+          {message && <p className={`final-feedback ${message.startsWith('ACCESS') ? 'feedback-denied' : ''}`} role="status">{tr(message)}</p>}
         </div>
       </section>
       {(complete || gameOver) && (
         <div className="final-result-backdrop">
           <section className="final-result-card" role="dialog" aria-modal="true" aria-labelledby="final-result-title">
             <span className="result-star">{complete ? '✦' : '00:00'}</span>
-            <p>{complete ? 'ALL FIVE ROOMS CLEARED' : 'TIME EXPIRED'}</p>
-            <h2 id="final-result-title">{complete ? 'YOU ESCAPED.' : 'THE VAULT REMAINS SEALED.'}</h2>
-            <span className="result-total">{complete ? score.toLocaleString() : 'The clock ran out.'}{complete && ' PTS'}</span>
+            <p>{tr(complete ? 'ALL FIVE ROOMS CLEARED' : 'TIME EXPIRED')}</p>
+            <h2 id="final-result-title">{tr(complete ? 'YOU ESCAPED.' : 'THE VAULT REMAINS SEALED.')}</h2>
+            <span className="result-total">{complete ? score.toLocaleString() : tr('The clock ran out.')}{complete && ` ${tr('PTS')}`}</span>
             {complete ? (
-              <p className="result-copy">The last lock yields. You made it out.</p>
+              <p className="result-copy">{tr('The last lock yields. You made it out.')}</p>
             ) : (
-              <button className="final-restart" type="button" onClick={restart}>RETRY FINAL ROOM</button>
+              <button className="final-restart" type="button" onClick={restart}>{tr('RETRY FINAL ROOM')}</button>
             )}
           </section>
         </div>
       )}
-      <footer className="final-room-footer"><span>THE LAST LOCK</span><span>ALL PROGRESS SAVED ON THIS DEVICE</span></footer>
+      <footer className="final-room-footer"><span>{tr('THE LAST LOCK')}</span><span>{tr('ALL PROGRESS SAVED ON THIS DEVICE')}</span></footer>
     </main>
   )
 }

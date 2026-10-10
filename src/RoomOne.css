@@ -38,17 +38,10 @@
 
 .brand-mark {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 46px;
+  height: 46px;
   place-items: center;
-  border: 1px solid rgba(199, 168, 122, 0.55);
-  color: #d4b88f;
-  font: 600 16px/1 'Playfair Display', Georgia, serif;
-  transform: rotate(45deg);
-}
-
-.brand-mark::first-letter {
-  transform: rotate(-45deg);
+  color: #fff;
 }
 
 .brand-name,
@@ -1507,13 +1500,13 @@
 }
 
 .keypad-key:hover {
-  border-color: rgba(192, 159, 222, 0.62);
-  background: #40324f;
+  border-color: rgba(217, 189, 139, .72);
+  background: #3a3022;
 }
 
 .keypad-back,
 .keypad-enter {
-  color: #c1a3e0;
+  color: #e6ce9f;
 }
 
 .access-denied {
@@ -2118,4 +2111,158 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.game-shell {
+  --gold: #83aaff;
+  --muted: #a4abc0;
+  --panel: #0a1024;
+  --line: rgba(160, 177, 220, .18);
+  color: #f4f5ff;
+  background:
+    radial-gradient(ellipse at 48% 46%, rgba(40, 123, 255, .12), transparent 53%),
+    #050711;
+}
+
+.topbar,
+.mission-bar,
+.room-footer {
+  border-color: rgba(160, 177, 220, .15);
+  background-color: rgba(5, 7, 17, .94);
+}
+
+.mission-bar {
+  background: linear-gradient(90deg, rgba(10, 16, 36, .97), rgba(8, 12, 27, .94));
+}
+
+.brand-name,
+.room-identity > strong,
+.stat strong {
+  color: #f4f5ff;
+}
+
+.brand-caption,
+.live-indicator,
+.footer-note,
+.eyebrow,
+.stat-label {
+  color: #a4abc0;
+}
+
+.room-name {
+  color: #c7d5f4;
+}
+
+.identity-divider {
+  background: rgba(40, 123, 255, .45);
+}
+
+.stat-icon,
+.button-hint,
+.room-step.active {
+  color: #a9bdff;
+}
+
+.live-indicator i,
+.status-dot {
+  background: #8b5cf6;
+  box-shadow: 0 0 9px rgba(139, 92, 246, .58);
+}
+
+.button {
+  border-color: rgba(160, 177, 220, .25);
+  border-radius: 6px;
+  color: #d6def1;
+  background: rgba(10, 16, 36, .9);
+}
+
+.button:hover:not(:disabled) {
+  border-color: rgba(217, 189, 139, .76);
+  background: rgba(183, 145, 84, .14);
+}
+
+.button-hint,
+.button-menu {
+  border-color: rgba(217, 189, 139, .48);
+  color: #e6ce9f;
+}
+
+.room-scene {
+  border-color: rgba(119, 151, 220, .24);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, .38);
+}
+
+.room-footer {
+  background: rgba(5, 7, 17, .96);
+}
+
+.room-step.active i,
+.room-step.finished i {
+  border-color: rgba(40, 123, 255, .72);
+  color: #dce7ff;
+  background: rgba(40, 123, 255, .16);
+  box-shadow: 0 0 12px rgba(40, 123, 255, .16);
+}
+
+.modal-card {
+  border-color: rgba(131, 163, 235, .3);
+  border-radius: 10px;
+  background:
+    radial-gradient(ellipse at 50% 0, rgba(40, 123, 255, .13), transparent 52%),
+    linear-gradient(145deg, rgba(10, 16, 36, .99), rgba(7, 9, 20, .99));
+  box-shadow: 0 24px 90px rgba(0, 0, 0, .68), 0 0 40px rgba(40, 123, 255, .08);
+}
+
+.modal-card::before,
+.modal-card::after {
+  background: #287bff;
+}
+
+.modal-kicker {
+  color: #a9bdff;
+}
+
+.modal-card h1,
+.question-main h2,
+.completion-panel h2 {
+  color: #f4f5ff;
+}
+
+.modal-description,
+.puzzle-instruction,
+.bank-label {
+  color: #a4abc0;
+}
+
+.word-slot:has(.placed-word) {
+  border-color: rgba(217, 189, 139, .58);
+  background: rgba(183, 145, 84, .12);
+}
+
+.word-chip {
+  border-color: rgba(217, 189, 139, .3);
+  color: #f1e7d2;
+  background: linear-gradient(145deg, #27231e, #15141a);
+}
+
+.word-chip:hover {
+  border-color: rgba(217, 189, 139, .8);
+  background: #352b1d;
+}
+
+.button-primary {
+  border-color: rgba(217, 189, 139, .8);
+  color: #120e0b;
+  background: linear-gradient(110deg, #d9bd8b, #8b6a42);
+  box-shadow: 0 5px 20px rgba(183, 145, 84, .2);
+}
+
+.button-primary:hover:not(:disabled) {
+  border-color: #f0d9a8;
+  background: linear-gradient(110deg, #e8ca91, #a27a48);
+}
+
+.code-display .digit-filled,
+.complete-emblem {
+  color: #a9bdff;
 }

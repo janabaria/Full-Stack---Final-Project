@@ -1,6 +1,8 @@
-# Escape Room Online
+# MAZORA
 
-A cinematic, four-room React escape-room game. Players sign in to a local session, solve each room in sequence, and keep campaign progress between visits.
+A cinematic, five-room React escape-room game. Players sign in to a local session, solve each room in sequence, and keep campaign progress between visits.
+
+The original MAZORA logo is stored at [`public/images/mazora-logo.png`](./public/images/mazora-logo.png). The app uses [`public/images/mazora-logo-transparent.png`](./public/images/mazora-logo-transparent.png), with its dark outer background removed, on the login page, home page, navigation headers, and browser icon.
 
 ## Run locally
 

@@ -1,0 +1,97 @@
+.preference-controls {
+  position: fixed;
+  z-index: 100;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid rgba(160, 177, 220, .22);
+  border-radius: 9px;
+  background: rgba(5, 7, 17, .9);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, .26);
+  backdrop-filter: blur(12px);
+}
+
+.preference-language {
+  display: flex;
+  gap: 2px;
+  padding-right: 5px;
+  border-right: 1px solid rgba(160, 177, 220, .18);
+}
+
+.preference-controls button {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #a4abc0;
+  background: transparent;
+  font: 10px 'DM Mono', monospace;
+  cursor: pointer;
+  transition: color .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.preference-controls button:hover {
+  border-color: rgba(217, 189, 139, .5);
+  color: #f4f5ff;
+  background: rgba(183, 145, 84, .12);
+}
+
+.preference-controls button.is-active {
+  color: #f0d9a8;
+  background: rgba(183, 145, 84, .2);
+}
+
+.preference-audio {
+  font-size: 17px !important;
+}
+
+.preference-error {
+  position: absolute;
+  top: calc(100% + 7px);
+  right: 0;
+  width: max-content;
+  max-width: min(280px, calc(100vw - 32px));
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 179, 193, .35);
+  border-radius: 6px;
+  color: #ffd5dc;
+  background: #17101c;
+  font: 11px/1.4 'DM Sans', sans-serif;
+}
+
+html[dir='rtl'] .preference-controls {
+  right: auto;
+  left: 16px;
+}
+
+html[dir='rtl'] .preference-language {
+  padding-right: 0;
+  padding-left: 5px;
+  border-right: 0;
+  border-left: 1px solid rgba(160, 177, 220, .18);
+}
+
+@media (max-width: 560px) {
+  .preference-controls {
+    top: 10px;
+    right: 10px;
+    gap: 3px;
+    padding: 4px;
+  }
+
+  html[dir='rtl'] .preference-controls {
+    right: auto;
+    left: 10px;
+  }
+
+  .preference-controls button {
+    width: 29px;
+    height: 29px;
+  }
+}
