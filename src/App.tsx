@@ -8,9 +8,15 @@ import FinalRoom from './FinalRoom'
 import roomThreeImage from './images/ROOM3.png'
 import { RoomFive } from './components/RoomFive'
 import PreferenceControls from './PreferenceControls'
-import { authenticateLocalPlayer } from './localAuth'
 import { usePreferences } from './preferencesContext'
 import { translateRoomText } from './roomTranslations'
+import TeamChatDrawer, { type SharedRoomState } from './TeamChatDrawer'
+import { getSupabaseClient } from './supabaseClient'
+import Navbar from './Navbar'
+import RoomNavbar from './RoomNavbar'
+import GameModeSelector, { type GameSessionConfig, type TeamLeaderboardEntry } from './GameModeSelector'
+import type { Session } from '@supabase/supabase-js'
+import TeamLeaderboardModal from './TeamLeaderboardModal'
 
 type Choice = {
   text: string
@@ -37,10 +43,33 @@ type GameProgress = {
 
 type PlayerSession = {
   username: string
+  email: string
+  id: string
 }
 
 const STORAGE_KEY = 'escape-room-online-progress-v1'
-const PLAYER_KEY = 'escape-room-online-player-v1'
+const GAME_SESSION_KEY = 'mazora-game-session-v1'
+
+function loadGameSession(): GameSessionConfig {
+  try {
+    const saved = window.localStorage.getItem(GAME_SESSION_KEY)
+    if (!saved) return { mode: 'solo', roomId: 'solo', teamCode: '' }
+    const parsed = JSON.parse(saved) as Partial<GameSessionConfig>
+    if (parsed.mode !== 'solo' && parsed.mode !== 'team') {
+      return { mode: 'solo', roomId: 'solo', teamCode: '' }
+    }
+    const teamCode = typeof parsed.teamCode === 'string' ? parsed.teamCode : ''
+    if (parsed.mode === 'team' && !/^[A-Z0-9]{6}$/.test(teamCode)) {
+      return { mode: 'team', roomId: '', teamCode: '' }
+    }
+    return parsed.mode === 'solo'
+      ? { mode: 'solo', roomId: 'solo', teamCode: '' }
+      : { mode: 'team', teamCode, roomId: teamCode }
+  } catch (error) {
+    console.error('Could not load the saved game mode.', error)
+    return { mode: 'solo', roomId: 'solo', teamCode: '' }
+  }
+}
 
 const ROOM_CONFIG = [
   { id: 1, name: 'THE MISSING MESSAGE', path: '/rooms/1', description: 'An abandoned office. A message out of order.' },
@@ -117,19 +146,6 @@ const defaultProgress: GameProgress = {
   hintsUsed: 0,
   gameStarted: false,
   gameCompleted: false,
-}
-
-function loadPlayer(): PlayerSession | null {
-  try {
-    const saved = window.localStorage.getItem(PLAYER_KEY)
-    if (!saved) return null
-    const parsed = JSON.parse(saved) as Partial<PlayerSession>
-    return typeof parsed.username === 'string' && parsed.username.trim()
-      ? { username: parsed.username.trim() }
-      : null
-  } catch {
-    return null
-  }
 }
 
 function normalizeProgress(parsed: Partial<GameProgress>): GameProgress {
@@ -478,7 +494,7 @@ export function RoomTwoGame({
 
 function App() {
   const { t, language } = usePreferences()
-  const [player, setPlayer] = useState<PlayerSession | null>(() => loadPlayer())
+  const [player, setPlayer] = useState<PlayerSession | null>(null)
   const [progress, setProgress] = useState<GameProgress>(() => loadProgress(player?.username))
   const [requestedRoute, setRequestedRoute] = useState(() => window.location.pathname || '/')
   const [storageWarning, setStorageWarning] = useState('')
@@ -486,17 +502,35 @@ function App() {
   const [isRetryingCloudSync, setIsRetryingCloudSync] = useState(false)
   const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([])
   const [leaderboardError, setLeaderboardError] = useState('')
-  const playerKey = player?.username.toLocaleLowerCase() ?? null
+  const [authError, setAuthError] = useState(() => {
+    try {
+      getSupabaseClient()
+      return ''
+    } catch (error) {
+      return error instanceof Error ? error.message : 'Supabase authentication is not configured.'
+    }
+  })
+  const [sharedInventory, setSharedInventory] = useState<string[]>([])
+  const [gameSession, setGameSession] = useState<GameSessionConfig>(loadGameSession)
+  const [teamEntryError, setTeamEntryError] = useState('')
+  const [teamLeaderboard, setTeamLeaderboard] = useState<TeamLeaderboardEntry[] | null>(null)
+  const [teamNotice, setTeamNotice] = useState('')
+  const puzzleSolvedSender = useRef<((room: number, state: SharedRoomState, playerScore: number) => void) | null>(null)
+  const roomEntrySender = useRef<((roomNumber: number) => Promise<void>) | null>(null)
+  const activeAuthUserId = useRef<string | null>(null)
+  const playerKey = player?.email.toLocaleLowerCase() ?? null
   const roomMatch = requestedRoute.match(/^\/rooms\/([1-5])(?:\/|$)/)
   const isLockedRoom = roomMatch
     ? !progress.unlockedRooms.includes(Number(roomMatch[1]))
     : false
+  const isMissingTeamConfig = Boolean(roomMatch && gameSession.mode === 'team' && !gameSession.teamCode)
   const route = !player
     ? '/login'
-    : requestedRoute === '/login' || isLockedRoom ||
+    : requestedRoute === '/login' || isLockedRoom || isMissingTeamConfig ||
         (requestedRoute === '/game-complete' && !progress.gameCompleted)
       ? '/'
       : requestedRoute
+  const activeRoomMatch = route.match(/^\/rooms\/([1-5])(?:\/|$)/)
 
   const navigate = useCallback((nextPath: string) => {
     if (window.location.pathname !== nextPath) {
@@ -510,6 +544,56 @@ function App() {
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+
+  useEffect(() => {
+    if (authError) return
+    let active = true
+    const client = getSupabaseClient()
+
+    const applySession = (session: Session | null, shouldNavigate = false) => {
+      if (!active) return
+      const user = session?.user
+      if (!user) {
+        activeAuthUserId.current = null
+        setPlayer(null)
+        setHydratedUsername(null)
+        return
+      }
+
+      const email = user.email ?? ''
+      const metadataName = user.user_metadata?.username
+      setPlayer({
+        username: typeof metadataName === 'string' && metadataName.trim()
+          ? metadataName.trim()
+          : email.split('@')[0] || email,
+        email,
+        id: user.id,
+      })
+      if (activeAuthUserId.current !== user.id) {
+        activeAuthUserId.current = user.id
+        setProgress(loadProgress(email))
+        setHydratedUsername(null)
+        setSharedInventory([])
+      }
+      setAuthError('')
+      if (shouldNavigate) navigate('/')
+    }
+
+    const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
+      applySession(session, event === 'SIGNED_IN')
+    })
+    void client.auth.getSession().then(({ data, error }) => {
+      if (error) setAuthError(`Could not restore your Supabase session: ${error.message}`)
+      else applySession(data.session)
+    }).catch((error: unknown) => {
+      if (active) setAuthError(error instanceof Error ? error.message : 'Could not restore your Supabase session.')
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [authError, navigate])
 
   useEffect(() => {
     if (window.location.pathname !== route) {
@@ -538,8 +622,22 @@ function App() {
 
   useEffect(() => {
     try {
+      window.localStorage.setItem(GAME_SESSION_KEY, JSON.stringify(gameSession))
+    } catch (error) {
+      console.error('Could not save the selected game mode.', error)
+    }
+  }, [gameSession])
+
+  useEffect(() => {
+    if (!teamNotice) return
+    const timeout = window.setTimeout(() => setTeamNotice(''), 4000)
+    return () => window.clearTimeout(timeout)
+  }, [teamNotice])
+
+  useEffect(() => {
+    try {
       if (player) {
-        const profileKey = `${STORAGE_KEY}:${encodeURIComponent(player.username.toLocaleLowerCase())}`
+        const profileKey = `${STORAGE_KEY}:${encodeURIComponent(player.email.toLocaleLowerCase())}`
         window.localStorage.setItem(profileKey, JSON.stringify(progress))
       }
     } catch (error) {
@@ -623,79 +721,162 @@ function App() {
 
   const continueTarget = useMemo(() => getContinueTarget(progress), [progress])
 
-  const completeRoom = useCallback((room: number, finalScore: number, usedHints: number) => {
-    setProgress((current) => {
-      const roomIndex = ROOM_CONFIG.findIndex((config) => config.id === room)
-      if (roomIndex < 0) return current
-      const previousRoom = ROOM_CONFIG[roomIndex - 1]
-      if (previousRoom && !current.completedRooms.includes(previousRoom.id)) return current
-      if (current.completedRooms.includes(room)) return current
-
-      const completedRooms = current.completedRooms.includes(room)
-        ? current.completedRooms
-        : [...current.completedRooms, room]
-
-      const unlockedRooms = ROOM_CONFIG
-        .slice(0, Math.min(completedRooms.length + 1, ROOM_CONFIG.length))
-        .map((config) => config.id)
-
-      return {
-        ...current,
-        currentRoom: Math.min(roomIndex + 2, ROOM_CONFIG.length),
-        completedRooms,
-        unlockedRooms,
-        score: Math.max(finalScore, current.score),
-        hintsUsed: current.hintsUsed + usedHints,
-        gameCompleted: completedRooms.length === ROOM_CONFIG.length,
-        gameStarted: true,
+  const completeRoom = useCallback((
+    room: number,
+    finalScore: number,
+    usedHints: number,
+    inventory: string[] = [],
+  ) => {
+    const roomIndex = ROOM_CONFIG.findIndex((config) => config.id === room)
+    if (roomIndex < 0) return
+    if (progress.completedRooms.includes(room)) {
+      if (gameSession.mode === 'team') {
+        puzzleSolvedSender.current?.(room, {
+          currentRoom: progress.currentRoom,
+          completedRooms: progress.completedRooms,
+          score: progress.score,
+          inventory: sharedInventory,
+        }, finalScore)
       }
-    })
-  }, [])
-
-  const handleRoomOneComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-    completeRoom(1, details.score, details.hintsUsed)
-  }, [completeRoom])
-
-  const handleRoomTwoComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-    completeRoom(2, details.score, details.hintsUsed)
-  }, [completeRoom])
-
-  const handleRoomThreeComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-    completeRoom(3, details.score, details.hintsUsed)
-  }, [completeRoom])
-
-  const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-    completeRoom(4, details.score, details.hintsUsed)
-  }, [completeRoom])
-
-  const handleLogin = useCallback(async (username: string, password: string) => {
-    const nextPlayer = { username }
-    try {
-      await authenticateLocalPlayer(username, password)
-      window.localStorage.setItem(PLAYER_KEY, JSON.stringify(nextPlayer))
-      setProgress(loadProgress(username))
-      setHydratedUsername(null)
-      setStorageWarning('')
-      setPlayer(nextPlayer)
-      navigate('/')
-    } catch (error) {
-      if (error instanceof Error) throw error
-      console.error('Could not create the local player session.', error)
-      throw new Error('Your session could not be saved. Check your browser storage and try again.')
+      return
     }
+    if (roomIndex > 0 && !progress.completedRooms.includes(ROOM_CONFIG[roomIndex - 1].id)) return
+
+    const completedRooms = [...progress.completedRooms, room]
+    const unlockedRooms = ROOM_CONFIG
+      .slice(0, Math.min(completedRooms.length + 1, ROOM_CONFIG.length))
+      .map((config) => config.id)
+    const nextProgress = {
+      ...progress,
+      currentRoom: Math.min(roomIndex + 2, ROOM_CONFIG.length),
+      completedRooms,
+      unlockedRooms,
+      score: Math.max(finalScore, progress.score),
+      hintsUsed: progress.hintsUsed + usedHints,
+      gameCompleted: completedRooms.length === ROOM_CONFIG.length,
+      gameStarted: true,
+    }
+    const nextInventory = [...new Set([...sharedInventory, ...inventory])]
+    setProgress(nextProgress)
+    setSharedInventory(nextInventory)
+    puzzleSolvedSender.current?.(room, {
+      currentRoom: nextProgress.currentRoom,
+      completedRooms: nextProgress.completedRooms,
+      score: nextProgress.score,
+      inventory: nextInventory,
+    }, finalScore)
+  }, [gameSession.mode, progress, sharedInventory])
+
+  const handleRoomOneComplete = useCallback((details: { score: number; hintsUsed: number; inventory?: string[] }) => {
+    completeRoom(1, details.score, details.hintsUsed, details.inventory)
+  }, [completeRoom])
+
+  const handleRoomTwoComplete = useCallback((details: { score: number; hintsUsed: number; inventory?: string[] }) => {
+    completeRoom(2, details.score, details.hintsUsed, details.inventory)
+  }, [completeRoom])
+
+  const handleRoomThreeComplete = useCallback((details: { score: number; hintsUsed: number; inventory?: string[] }) => {
+    completeRoom(3, details.score, details.hintsUsed, details.inventory)
+  }, [completeRoom])
+
+  const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number; inventory?: string[] }) => {
+    completeRoom(4, details.score, details.hintsUsed, details.inventory)
+  }, [completeRoom])
+
+  const handleLogin = useCallback(async (
+    email: string,
+    password: string,
+    createAccount: boolean,
+    displayName: string,
+  ) => {
+    const client = getSupabaseClient()
+    const result = createAccount
+      ? await client.auth.signUp({
+        email,
+        password,
+        options: { data: { username: displayName } },
+      })
+      : await client.auth.signInWithPassword({ email, password })
+    if (result.error) throw new Error(result.error.message)
+    if (!result.data.session) {
+      throw new Error('Check your email to confirm your account, then return to sign in.')
+    }
+    setAuthError('')
+    navigate('/')
   }, [navigate])
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
     try {
-      window.localStorage.removeItem(PLAYER_KEY)
+      const { error } = await getSupabaseClient().auth.signOut()
+      if (error) throw error
       setHydratedUsername(null)
       setPlayer(null)
       navigate('/login')
     } catch (error) {
-      console.error('Could not clear the local player session.', error)
-      setStorageWarning('Could not sign out. Check your browser storage settings.')
+      console.error('Could not sign out of Supabase.', error)
+      setAuthError(error instanceof Error ? error.message : 'Could not sign out. Please try again.')
     }
   }, [navigate])
+
+  const registerPuzzleSolved = useCallback((send: ((room: number, state: SharedRoomState, playerScore: number) => void) | null) => {
+    puzzleSolvedSender.current = send
+  }, [])
+
+  const handleSharedRoomState = useCallback((state: SharedRoomState) => {
+    setProgress((current) => normalizeProgress({
+      ...current,
+      currentRoom: Math.max(current.currentRoom, state.currentRoom),
+      completedRooms: [...new Set([...current.completedRooms, ...state.completedRooms])],
+      score: Math.max(current.score, state.score),
+      gameStarted: true,
+    }))
+    setSharedInventory((current) => [...new Set([...current, ...state.inventory])])
+  }, [])
+
+  const handleTeamNavigate = useCallback((roomNumber: number, state: SharedRoomState | null) => {
+    if (!Number.isInteger(roomNumber) || roomNumber < 1 || roomNumber > ROOM_CONFIG.length) return
+    if (state) handleSharedRoomState(state)
+    setGameSession((current) => ({
+      ...current,
+      roomId: `team-${current.teamCode}-room-${roomNumber}`,
+    }))
+    navigate(`/rooms/${roomNumber}`)
+  }, [handleSharedRoomState, navigate])
+
+  const handleGameSessionChange = useCallback((next: GameSessionConfig) => {
+    setTeamEntryError('')
+    setGameSession(next.mode === 'solo'
+      ? { mode: 'solo', roomId: 'solo', teamCode: '' }
+      : next)
+  }, [])
+
+  const registerRoomEntry = useCallback((enter: ((roomNumber: number) => Promise<void>) | null) => {
+    roomEntrySender.current = enter
+  }, [])
+
+  const enterGameRoom = useCallback(async (roomNumber: number) => {
+    if (gameSession.mode === 'team') {
+      if (!gameSession.teamCode) {
+        setTeamEntryError('Create or join a team before entering a room.')
+        return
+      }
+      try {
+        if (!roomEntrySender.current) throw new Error('The team connection is not ready. Try again in a moment.')
+        await roomEntrySender.current(roomNumber)
+      } catch (error) {
+        setTeamEntryError(error instanceof Error ? error.message : 'Could not join the selected team room.')
+        return
+      }
+    }
+    setTeamEntryError('')
+    setGameSession((current) => ({
+      ...current,
+      roomId: current.mode === 'team'
+        ? `team-${current.teamCode}-room-${roomNumber}`
+        : 'solo',
+    }))
+    navigate(`/rooms/${roomNumber}`)
+  }, [gameSession.mode, gameSession.teamCode, navigate])
 
   const handleRetryCloudSync = useCallback(async () => {
     if (!player || !playerKey) return
@@ -718,36 +899,32 @@ function App() {
       navigate('/')
       return
     }
-    navigate('/rooms/2')
-  }, [navigate, progress.completedRooms])
+    void enterGameRoom(2)
+  }, [enterGameRoom, navigate, progress.completedRooms])
 
   const handleRoomTwoEnter = useCallback(() => {
     if (!progress.completedRooms.includes(2)) {
       navigate('/')
       return
     }
-    navigate('/rooms/3')
-  }, [navigate, progress.completedRooms])
+    void enterGameRoom(3)
+  }, [enterGameRoom, navigate, progress.completedRooms])
 
   const handleRoomThreeEnter = useCallback(() => {
     if (!progress.completedRooms.includes(3)) {
       navigate('/')
       return
     }
-    navigate('/rooms/4')
-  }, [navigate, progress.completedRooms])
+    void enterGameRoom(4)
+  }, [enterGameRoom, navigate, progress.completedRooms])
 
-  // const handleRoomFourComplete = useCallback((details: { score: number; hintsUsed: number }) => {
-  //   completeRoom(4, details.score, details.hintsUsed)
-  // }, [completeRoom])
-
-    const handleRoomFourEnter = useCallback(() => {
+  const handleRoomFourEnter = useCallback(() => {
     if (!progress.completedRooms.includes(4)) {
       navigate('/')
       return
     }
-    navigate('/rooms/5')
-  }, [navigate, progress.completedRooms])
+    void enterGameRoom(5)
+  }, [enterGameRoom, navigate, progress.completedRooms])
 
   const handleRoomFiveComplete = useCallback((details: { score: number; hintsUsed: number }) => {
     const previousBestKey = `escape-room-high-score:${playerKey ?? 'guest'}`
@@ -763,14 +940,6 @@ function App() {
     navigate('/game-complete')
   }, [completeRoom, navigate, playerKey])
 
-  // const handleFinishCampaign = useCallback(() => {
-  //   if (!progress.completedRooms.includes(5)) {
-  //     navigate('/')
-  //     return
-  //   }
-  //   navigate('/game-complete')
-  // }, [navigate, progress.completedRooms])
-
   const startGame = useCallback(() => {
     setProgress((current) => ({
       ...current,
@@ -782,8 +951,8 @@ function App() {
       hintsUsed: 0,
       gameCompleted: false,
     }))
-    navigate('/rooms/1')
-  }, [navigate])
+    void enterGameRoom(1)
+  }, [enterGameRoom])
 
   const localizedRoomNames = [
     t('home.room1'),
@@ -860,8 +1029,8 @@ function App() {
     </div>
   )
 
-  const renderContent = () => {
-    if (route === '/') {
+  const renderContent = (showHome = false) => {
+    if (showHome || route === '/') {
         return (
         <div className="dashboard-shell home-shell">
           <header className="app-header compact home-header">
@@ -885,11 +1054,23 @@ function App() {
               <p>{t('home.description')}</p>
             </div>
             <div className="home-actions">
-              <button className="primary-button" type="button" onClick={() => navigate('/rooms/1')}>
+              <button
+                className="primary-button"
+                type="button"
+                onClick={() => void enterGameRoom(1)}
+                disabled={gameSession.mode === 'team' && !gameSession.teamCode}
+              >
                 {t('home.enterRoom')} <span aria-hidden="true">→</span>
               </button>
               {progress.gameStarted && (
-                <button className="ghost-button" type="button" onClick={() => navigate(continueTarget)}>
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => progress.gameCompleted
+                    ? navigate('/game-complete')
+                    : void enterGameRoom(progress.currentRoom)}
+                  disabled={gameSession.mode === 'team' && !gameSession.teamCode}
+                >
                   {t('home.continueGame')}
                 </button>
               )}
@@ -907,6 +1088,18 @@ function App() {
               </button>
             </div>
           )}
+
+          <GameModeSelector
+            value={gameSession}
+            roomNumber={progress.currentRoom}
+            onChange={handleGameSessionChange}
+            onRegisterRoomEntry={registerRoomEntry}
+            onTeamNavigate={handleTeamNavigate}
+            onSharedState={handleSharedRoomState}
+            onTeamLeaderboard={setTeamLeaderboard}
+            onTeamNotice={setTeamNotice}
+          />
+          {teamEntryError && <p className="game-mode-error team-entry-error" role="alert">{teamEntryError}</p>}
 
           <section className="progression-section" aria-labelledby="progression-title">
             <div className="progression-heading">
@@ -927,8 +1120,8 @@ function App() {
                     key={room.id}
                     type="button"
                     className={`room-card room-art-${room.id} ${isCurrent ? 'is-current' : ''} ${isCompleted ? 'is-complete' : ''} ${isUnlocked ? 'is-unlocked' : 'is-locked'}`}
-                    disabled={!isUnlocked}
-                    onClick={() => isUnlocked && navigate(room.path)}
+                    disabled={!isUnlocked || (gameSession.mode === 'team' && !gameSession.teamCode)}
+                    onClick={() => isUnlocked && void enterGameRoom(room.id)}
                     style={room.id === 3 ? {
                       backgroundImage: `linear-gradient(180deg, rgba(8, 8, 16, .18), rgba(8, 8, 16, .97)), url(${roomThreeImage})`,
                     } : undefined}
@@ -1101,15 +1294,43 @@ function App() {
     return (
       <>
         <PreferenceControls />
-        <LoginPage onLogin={handleLogin} />
+        <LoginPage onLogin={handleLogin} authError={authError} />
       </>
     )
   }
 
   return (
     <>
-      <PreferenceControls />
-      {renderContent()}
+      {activeRoomMatch
+        ? <RoomNavbar playerName={player.username} onBackHome={() => navigate('/')} />
+        : <Navbar agentName={player.username} onSignOut={handleLogout} />}
+      {teamNotice && <div className="team-global-toast" role="status">{teamNotice}</div>}
+      <div hidden={route !== '/'}>{renderContent(true)}</div>
+      {route !== '/' && renderContent()}
+      {activeRoomMatch && (
+        <TeamChatDrawer
+          roomNumber={Number(activeRoomMatch[1])}
+          playerName={player.username}
+          mode={gameSession.mode}
+          teamCode={gameSession.teamCode}
+          progress={{
+            currentRoom: progress.currentRoom,
+            completedRooms: progress.completedRooms,
+            score: progress.score,
+            inventory: sharedInventory,
+          }}
+          onSharedState={handleSharedRoomState}
+          onRegisterPuzzleSolved={registerPuzzleSolved}
+          onTeamNavigate={handleTeamNavigate}
+          onTeamLeaderboard={setTeamLeaderboard}
+        />
+      )}
+      {teamLeaderboard && (
+        <TeamLeaderboardModal
+          entries={teamLeaderboard}
+          onClose={() => setTeamLeaderboard(null)}
+        />
+      )}
     </>
   )
 }

@@ -1,0 +1,117 @@
+.team-leaderboard-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(3, 6, 14, .82);
+  backdrop-filter: blur(8px);
+}
+
+.team-leaderboard-modal {
+  width: min(620px, 100%);
+  max-height: min(760px, calc(100svh - 40px));
+  overflow: auto;
+  padding: clamp(22px, 5vw, 42px);
+  border: 1px solid rgba(184, 149, 96, .45);
+  border-radius: 12px;
+  color: #eef1fb;
+  background: linear-gradient(145deg, #131d32, #080d19 78%);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .62);
+}
+
+.team-leaderboard-modal > .eyebrow-header {
+  color: #c4a270;
+  font: 10px 'DM Mono', monospace;
+  letter-spacing: 1.4px;
+}
+
+.team-leaderboard-modal h2 {
+  margin: 8px 0;
+  font: 500 clamp(27px, 6vw, 40px) 'Playfair Display', Georgia, serif;
+}
+
+.team-leaderboard-subtitle {
+  margin: 0;
+  color: #9da8bf;
+  font-size: 13px;
+}
+
+.team-leaderboard-list {
+  display: grid;
+  gap: 8px;
+  margin: 26px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.team-leaderboard-list li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid rgba(146, 164, 209, .15);
+  border-radius: 7px;
+  background: rgba(41, 54, 78, .3);
+}
+
+.team-leaderboard-rank {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid rgba(196, 162, 112, .5);
+  border-radius: 50%;
+  color: #e9d2aa;
+  font: 600 12px 'DM Mono', monospace;
+}
+
+.team-leaderboard-list li > div {
+  display: grid;
+  gap: 3px;
+}
+
+.team-leaderboard-list li > div strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-leaderboard-list small,
+.team-leaderboard-list time {
+  color: #9da8bf;
+  font-size: 10px;
+}
+
+.team-leaderboard-score {
+  color: #e9d2aa;
+  font: 600 12px 'DM Mono', monospace;
+  white-space: nowrap;
+}
+
+.team-leaderboard-list time {
+  min-width: 40px;
+  font-family: 'DM Mono', monospace;
+  text-align: right;
+}
+
+.team-leaderboard-modal > button {
+  width: 100%;
+}
+
+@media (max-width: 520px) {
+  .team-leaderboard-list li {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .team-leaderboard-score {
+    grid-column: 2;
+  }
+
+  .team-leaderboard-list time {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}

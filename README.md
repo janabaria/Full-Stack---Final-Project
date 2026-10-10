@@ -39,7 +39,7 @@ npm run lint
 2. In the Supabase SQL Editor, run [`supabase/schema.sql`](./supabase/schema.sql).
 3. Copy `.env.example` to `.env` and fill in `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` from the Supabase project settings.
 4. Keep the service-role key in `.env` on the server only. Never add it to a `VITE_*` variable or browser code.
-5. Run `npm run dev:server` and `npm run dev` in separate terminals. The Vite development server proxies `/api` requests to Express.
+5. Run `npm run dev:server` and `npm run dev` in separate terminals. Vite proxies `/api` requests and Socket.IO connections to Express.
 
 The Express API provides:
 
