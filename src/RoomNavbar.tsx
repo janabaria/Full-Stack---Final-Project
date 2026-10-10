@@ -30,7 +30,7 @@ export default function RoomNavbar({ playerName, onBackHome }: RoomNavbarProps) 
         </a>
       </nav>
       <div className="room-navbar-right">
-        <PreferenceControls inline />
+        <PreferenceControls />
         <div className="room-navbar-player">
           <span className="room-navbar-online-dot" />
           <span className="room-navbar-player-name">{playerName}</span>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import { getSupabaseClient } from './supabaseClient'
+import type { TeamLeaderboardEntry } from './GameModeSelector'
 import './TeamChatDrawer.css'
 
 export type SharedRoomState = {
@@ -19,6 +20,14 @@ type ChatMessage = {
   system?: boolean
 }
 
+type TeamMember = {
+  userId: string
+  username: string
+  currentRoom: number | null
+  score: number
+  completedRooms: number[]
+}
+
 type TeamChatDrawerProps = {
   roomNumber: number
   playerName: string
@@ -26,7 +35,9 @@ type TeamChatDrawerProps = {
   teamCode: string
   progress: SharedRoomState
   onSharedState: (state: SharedRoomState) => void
-  onRegisterPuzzleSolved: (send: ((room: number, state: SharedRoomState) => void) | null) => void
+  onRegisterPuzzleSolved: (send: ((room: number, state: SharedRoomState, playerScore: number) => void) | null) => void
+  onTeamNavigate: (roomNumber: number, state: SharedRoomState | null) => void
+  onTeamLeaderboard: (entries: TeamLeaderboardEntry[]) => void
 }
 
 type ServerToClientEvents = {
@@ -35,13 +46,18 @@ type ServerToClientEvents = {
   'room:state': (state: SharedRoomState) => void
   'chat:message': (message: ChatMessage) => void
   'chat:error': (data: { message: string }) => void
+  'team:notice': (notice: { id: string; message: string; created_at: string }) => void
+  'team:roster': (members: TeamMember[]) => void
+  'team:scoreboard': (entries: TeamLeaderboardEntry[]) => void
+  'team:leaderboard': (entries: TeamLeaderboardEntry[]) => void
+  'navigate_room': (data: { roomNumber: number; state: SharedRoomState | null }) => void
 }
 
 type ClientToServerEvents = {
   'team:join': (data: { teamCode: string; roomNumber: number }) => void
   'room:state:update': (state: SharedRoomState) => void
   'chat:send': (data: { message: string }) => void
-  'puzzle:solved': (data: { roomNumber: number; state: SharedRoomState }) => void
+  'puzzle:solved': (data: { roomNumber: number; state: SharedRoomState; playerScore: number }) => void
 }
 
 const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin
@@ -68,6 +84,8 @@ export default function TeamChatDrawer({
   progress,
   onSharedState,
   onRegisterPuzzleSolved,
+  onTeamNavigate,
+  onTeamLeaderboard,
 }: TeamChatDrawerProps) {
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null)
   const [connected, setConnected] = useState(false)
@@ -75,6 +93,8 @@ export default function TeamChatDrawer({
   const [draft, setDraft] = useState('')
   const [open, setOpen] = useState(false)
   const [error, setError] = useState('')
+  const [roster, setRoster] = useState<TeamMember[]>([])
+  const [standings, setStandings] = useState<TeamLeaderboardEntry[]>([])
   const lastReceivedState = useRef('')
 
   useEffect(() => {
@@ -124,6 +144,23 @@ export default function TeamChatDrawer({
         setMessages((current) => [...current.slice(-99), message])
       })
       nextSocket.on('chat:error', ({ message }) => setError(message))
+      nextSocket.on('team:notice', (teamNotice) => {
+        setMessages((current) => [...current.slice(-99), {
+          ...teamNotice,
+          room_id: `team-${teamCode}`,
+          username: 'SYSTEM',
+          system: true,
+        }])
+      })
+      nextSocket.on('team:roster', setRoster)
+      nextSocket.on('team:scoreboard', setStandings)
+      nextSocket.on('team:leaderboard', (entries) => {
+        setStandings(entries)
+        onTeamLeaderboard(entries)
+      })
+      nextSocket.on('navigate_room', ({ roomNumber: targetRoom, state }) => {
+        onTeamNavigate(targetRoom, state)
+      })
       nextSocket.connect()
       setSocket(nextSocket)
       const { data: { subscription } } = getSupabaseClient().auth.onAuthStateChange((_event, session) => {
@@ -150,7 +187,7 @@ export default function TeamChatDrawer({
       authSubscriptionCleanup()
       nextSocket?.disconnect()
     }
-  }, [mode, onSharedState, roomNumber, teamCode])
+  }, [mode, onSharedState, onTeamLeaderboard, onTeamNavigate, roomNumber, teamCode])
 
   useEffect(() => {
     if (!connected || !socket?.connected || !teamCode) return
@@ -174,9 +211,9 @@ export default function TeamChatDrawer({
   }, [connected, progress, roomNumber, socket, teamCode])
 
   useEffect(() => {
-    const sendPuzzleSolved = (solvedRoom: number, state: SharedRoomState) => {
+    const sendPuzzleSolved = (solvedRoom: number, state: SharedRoomState, playerScore: number) => {
       if (socket?.connected && teamCode && solvedRoom === roomNumber) {
-        socket.emit('puzzle:solved', { roomNumber: solvedRoom, state })
+        socket.emit('puzzle:solved', { roomNumber: solvedRoom, state, playerScore })
       }
     }
     onRegisterPuzzleSolved(sendPuzzleSolved)
@@ -237,6 +274,29 @@ export default function TeamChatDrawer({
                 <strong>{progress.score.toLocaleString()} PTS</strong>
                 <small>Team inventory: {progress.inventory.length ? progress.inventory.join(', ') : 'Nothing collected yet'}</small>
               </div>
+              <section className="team-chat-roster" aria-label="Active team members">
+                <h3>TEAM MEMBERS <span>{roster.length} ONLINE</span></h3>
+                {roster.map((member) => (
+                  <div className="team-chat-roster-member" key={member.userId}>
+                    <i aria-hidden="true" />
+                    <strong>{member.username}{member.username === playerName ? ' (You)' : ''}</strong>
+                    <span>{member.score.toLocaleString()} pts</span>
+                  </div>
+                ))}
+                {roster.length === 0 && <p className="team-chat-empty">Waiting for teammates…</p>}
+              </section>
+              {standings.length > 0 && (
+                <section className="team-chat-scoreboard" aria-label="Team race standings">
+                  <h3>RACE STANDINGS</h3>
+                  {standings.map((entry, index) => (
+                    <div key={entry.userId}>
+                      <span>{index + 1}.</span>
+                      <strong>{entry.username}</strong>
+                      <em>{entry.score.toLocaleString()} pts</em>
+                    </div>
+                  ))}
+                </section>
+              )}
               <div className="team-chat-messages" aria-live="polite">
                 {messages.length === 0 && <p className="team-chat-empty">No messages yet. Coordinate your escape.</p>}
                 {messages.map((message) => (

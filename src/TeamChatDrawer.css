@@ -205,6 +205,68 @@
   text-overflow: ellipsis;
 }
 
+.team-chat-roster,
+.team-chat-scoreboard {
+  display: grid;
+  gap: 7px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(146, 164, 209, .13);
+}
+
+.team-chat-roster h3,
+.team-chat-scoreboard h3 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 2px;
+  color: #9da8bf;
+  font: 9px 'DM Mono', monospace;
+  letter-spacing: .8px;
+}
+
+.team-chat-roster h3 span {
+  color: #55d6a0;
+}
+
+.team-chat-roster-member,
+.team-chat-scoreboard > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  color: #dce2ef;
+  font-size: 10px;
+}
+
+.team-chat-roster-member > i {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #55d6a0;
+}
+
+.team-chat-roster-member strong,
+.team-chat-scoreboard strong {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-chat-roster-member > span,
+.team-chat-scoreboard em {
+  margin-left: auto;
+  color: #e9d2aa;
+  font: 9px 'DM Mono', monospace;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.team-chat-scoreboard > div > span {
+  color: #b89560;
+  font: 9px 'DM Mono', monospace;
+}
+
 .team-chat-messages {
   display: flex;
   flex: 1;

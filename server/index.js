@@ -30,6 +30,8 @@ const io = new Server(server, {
 const activeTeams = new Set()
 const sharedRoomStates = new Map()
 const quickMatchQueues = new Map()
+const teamMembers = new Map()
+const teamRaces = new Map()
 
 function createTeamCode() {
   let teamCode
@@ -46,6 +48,17 @@ function removeFromQuickMatchQueue(socketId) {
     if (waiting.length) quickMatchQueues.set(roomNumber, waiting)
     else quickMatchQueues.delete(roomNumber)
   }
+}
+
+function getTeamSharedState(teamCode) {
+  let state = null
+  for (const roomNumber of roomOrder) {
+    state = mergeSharedRoomState(
+      state,
+      sharedRoomStates.get(`team-${teamCode}-room-${roomNumber}`) ?? null,
+    )
+  }
+  return state
 }
 
 function getSupabase() {
@@ -226,6 +239,132 @@ function getPlayerName(user) {
   return (candidate || user.email?.split('@')[0] || 'Player').slice(0, 80)
 }
 
+function getTeamRoster(teamCode) {
+  const members = teamMembers.get(teamCode)
+  const race = teamRaces.get(teamCode)
+  if (!members) return []
+  return [...members.values()]
+    .filter((member) => member.connections.size > 0)
+    .map((member) => {
+      const playerRace = race?.players.get(member.userId)
+      return {
+        userId: member.userId,
+        username: member.username,
+        currentRoom: [...member.connections.values()].filter(Number.isSafeInteger).pop() ?? null,
+        score: playerRace?.score ?? 0,
+        completedRooms: playerRace?.completedRooms ?? [],
+      }
+    })
+}
+
+function publishTeamRoster(teamCode) {
+  io.to(`team-${teamCode}`).emit('team:roster', getTeamRoster(teamCode))
+  const race = teamRaces.get(teamCode)
+  if (race) {
+    io.to(`team-${teamCode}`).emit('team:scoreboard', getTeamRaceStandings(teamCode, true))
+  }
+}
+
+function getTeamRaceStandings(teamCode, activeOnly = false) {
+  const race = teamRaces.get(teamCode)
+  if (!race) return []
+  const activeUserIds = new Set(getTeamRoster(teamCode).map((member) => member.userId))
+  return [...race.players.values()]
+    .filter((player) => !activeOnly || activeUserIds.has(player.userId))
+    .map((player) => ({
+      userId: player.userId,
+      username: player.username,
+      score: player.score,
+      completedRooms: [...player.completedRooms],
+      elapsedMs: player.finishedAt
+        ? player.finishedAt - race.startedAt
+        : race.startedAt ? Date.now() - race.startedAt : 0,
+      finished: player.completedRooms.length === roomOrder.length,
+    }))
+    .sort((left, right) => right.score - left.score || left.elapsedMs - right.elapsedMs)
+}
+
+function updateTeamRace(teamCode, user) {
+  let race = teamRaces.get(teamCode)
+  if (!race) {
+    race = { startedAt: 0, leaderboardPublished: false, players: new Map() }
+    teamRaces.set(teamCode, race)
+  }
+  let player = race.players.get(user.id)
+  if (!player) {
+    player = {
+      userId: user.id,
+      username: getPlayerName(user),
+      score: 0,
+      completedRooms: [],
+      finishedAt: 0,
+    }
+    race.players.set(user.id, player)
+  }
+  return { race, player }
+}
+
+function startTeamRace(teamCode) {
+  let race = teamRaces.get(teamCode)
+  if (!race) {
+    race = { startedAt: 0, leaderboardPublished: false, players: new Map() }
+    teamRaces.set(teamCode, race)
+  }
+  if (!race.startedAt) race.startedAt = Date.now()
+  for (const member of teamMembers.get(teamCode)?.values() ?? []) {
+    const player = race.players.get(member.userId)
+    if (!player) {
+      race.players.set(member.userId, {
+        userId: member.userId,
+        username: member.username,
+        score: 0,
+        completedRooms: [],
+        finishedAt: 0,
+      })
+    }
+  }
+  publishTeamRoster(teamCode)
+}
+
+function addSocketToTeam(socket, teamCode, roomNumber = null) {
+  const previousTeamCode = socket.data.teamCode
+  if (previousTeamCode && previousTeamCode !== teamCode) {
+    socket.leave(`team-${previousTeamCode}`)
+    const previousMembers = teamMembers.get(previousTeamCode)
+    const previousMember = previousMembers?.get(socket.data.user.id)
+    previousMember?.connections.delete(socket.id)
+    publishTeamRoster(previousTeamCode)
+  }
+
+  let members = teamMembers.get(teamCode)
+  if (!members) {
+    members = new Map()
+    teamMembers.set(teamCode, members)
+  }
+  let member = members.get(socket.data.user.id)
+  const isNewMember = !member
+  if (!member) {
+    member = {
+      userId: socket.data.user.id,
+      username: getPlayerName(socket.data.user),
+      connections: new Map(),
+    }
+    members.set(socket.data.user.id, member)
+  }
+  member.connections.set(socket.id, roomNumber)
+  socket.data.teamCode = teamCode
+  socket.join(`team-${teamCode}`)
+  updateTeamRace(teamCode, socket.data.user)
+  if (isNewMember) {
+    io.to(`team-${teamCode}`).emit('team:notice', {
+      id: randomUUID(),
+      message: `${member.username} joined the team!`,
+      created_at: new Date().toISOString(),
+    })
+  }
+  publishTeamRoster(teamCode)
+}
+
 async function saveMessage(database, row) {
   const { error } = await database.from('messages').insert({
     id: row.id,
@@ -235,6 +374,53 @@ async function saveMessage(database, row) {
     created_at: row.created_at,
   })
   if (error) console.error('Supabase chat message save failed:', error.message)
+}
+
+async function joinTeamRoom(socket, teamCode, roomNumber) {
+  if (!validTeamCode(teamCode) || !activeTeams.has(teamCode)) {
+    throw new Error('That team code is invalid or its team is not active.')
+  }
+  if (!Number.isSafeInteger(roomNumber) || !roomOrder.includes(roomNumber)) {
+    throw new Error('Choose a valid game room (1–5).')
+  }
+
+  addSocketToTeam(socket, teamCode, roomNumber)
+  const roomId = `team-${teamCode}-room-${roomNumber}`
+  if (socket.data.roomId) await socket.leave(socket.data.roomId)
+  socket.data.roomId = roomId
+  socket.data.teamCode = teamCode
+  socket.data.roomNumber = roomNumber
+  await socket.join(roomId)
+
+  const database = getSupabase()
+  let messages = []
+  if (database) {
+    try {
+      const { data, error } = await database
+        .from('messages')
+        .select('id, room_id, username, message, created_at')
+        .in('room_id', [roomId, `team-${teamCode}`])
+        .order('created_at', { ascending: false })
+        .limit(100)
+      if (error) console.error('Supabase chat history read failed:', error.message)
+      else messages = (data ?? []).reverse()
+    } catch (error) {
+      console.error('Supabase chat history read failed:', error)
+      socket.emit('chat:error', { message: 'Chat history could not be loaded.' })
+    }
+  }
+
+  socket.emit('room:joined', {
+    roomId,
+    state: sharedRoomStates.get(roomId) ?? {
+      currentRoom: roomNumber,
+      completedRooms: [],
+      score: 0,
+      inventory: [],
+    },
+    messages,
+  })
+  return roomId
 }
 
 io.use(async (socket, next) => {
@@ -254,7 +440,9 @@ io.use(async (socket, next) => {
 
 io.on('connection', (socket) => {
   socket.on('team:create', () => {
-    socket.emit('team:created', { teamCode: createTeamCode() })
+    const teamCode = createTeamCode()
+    addSocketToTeam(socket, teamCode)
+    socket.emit('team:created', { teamCode })
   })
 
   socket.on('quick-match:join', (payload) => {
@@ -277,6 +465,8 @@ io.on('connection', (socket) => {
     else quickMatchQueues.delete(roomNumber)
     const teamCode = createTeamCode()
     const match = io.sockets.sockets.get(waitingId)
+    if (match) addSocketToTeam(match, teamCode)
+    addSocketToTeam(socket, teamCode)
     match?.emit('quick-match:matched', { teamCode })
     socket.emit('quick-match:matched', { teamCode })
   })
@@ -288,48 +478,39 @@ io.on('connection', (socket) => {
   socket.on('team:join', async (payload) => {
     const teamCode = payload && typeof payload === 'object' ? payload.teamCode : null
     const roomNumber = payload && typeof payload === 'object' ? payload.roomNumber : null
-    if (!validTeamCode(teamCode) || !activeTeams.has(teamCode)) {
-      socket.emit('team:error', { message: 'That team code is invalid or its team is not active.' })
-      return
+    try {
+      await joinTeamRoom(socket, teamCode, roomNumber)
+    } catch (error) {
+      socket.emit('team:error', {
+        message: error instanceof Error ? error.message : 'Could not join the team room.',
+      })
     }
-    if (!Number.isSafeInteger(roomNumber) || !roomOrder.includes(roomNumber)) {
-      socket.emit('team:error', { message: 'Choose a valid game room (1–5).' })
-      return
-    }
+  })
 
-    const roomId = `team-${teamCode}-room-${roomNumber}`
-    if (socket.data.roomId) await socket.leave(socket.data.roomId)
-    socket.data.roomId = roomId
-    socket.data.teamCode = teamCode
-    socket.data.roomNumber = roomNumber
-    await socket.join(roomId)
-
-    const database = getSupabase()
-    let messages = []
-    if (database) {
-      try {
-        const { data, error } = await database
-          .from('messages')
-          .select('id, room_id, username, message, created_at')
-          .eq('room_id', roomId)
-          .order('created_at', { ascending: false })
-          .limit(100)
-        if (error) console.error('Supabase chat history read failed:', error.message)
-        else messages = (data ?? []).reverse()
-      } catch (error) {
-        console.error('Supabase chat history read failed:', error)
-        socket.emit('chat:error', { message: 'Chat history could not be loaded.' })
-      }
+  socket.on('game:enter', async (payload, acknowledge) => {
+    if (typeof acknowledge !== 'function') return
+    const teamCode = payload && typeof payload === 'object' ? payload.teamCode : null
+    const roomNumber = payload && typeof payload === 'object' ? payload.roomNumber : null
+    try {
+      const roomId = await joinTeamRoom(socket, teamCode, roomNumber)
+      if (roomNumber === 1) startTeamRace(teamCode)
+      io.to(`team-${teamCode}`).emit('navigate_room', {
+        roomNumber,
+        teamCode,
+        username: getPlayerName(socket.data.user),
+        state: getTeamSharedState(teamCode),
+      })
+      io.to(`team-${teamCode}`).emit('team:notice', {
+        id: randomUUID(),
+        message: `${getPlayerName(socket.data.user)} entered Room ${roomNumber}.`,
+        created_at: new Date().toISOString(),
+      })
+      acknowledge({ roomId })
+    } catch (error) {
+      acknowledge({
+        error: error instanceof Error ? error.message : 'Could not enter the selected team room.',
+      })
     }
-    socket.emit('room:joined', {
-      state: sharedRoomStates.get(roomId) ?? {
-        currentRoom: roomNumber,
-        completedRooms: [],
-        score: 0,
-        inventory: [],
-      },
-      messages,
-    })
   })
 
   socket.on('room:state:update', (rawState) => {
@@ -341,7 +522,7 @@ io.on('connection', (socket) => {
     }
     const mergedState = mergeSharedRoomState(sharedRoomStates.get(roomId), nextState)
     sharedRoomStates.set(roomId, mergedState)
-    io.to(roomId).emit('room:state', mergedState)
+    io.to(`team-${socket.data.teamCode}`).emit('room:state', mergedState)
   })
 
   socket.on('chat:send', async (payload) => {
@@ -375,41 +556,72 @@ io.on('connection', (socket) => {
   socket.on('puzzle:solved', async (payload) => {
     const roomNumber = payload && typeof payload === 'object' ? payload.roomNumber : null
     const rawState = payload && typeof payload === 'object' ? payload.state : null
+    const playerScore = payload && typeof payload === 'object' ? payload.playerScore : null
     const roomId = socket.data.roomId
     if (!roomId || roomNumber !== socket.data.roomNumber) return
     const nextState = validatedSharedState(rawState)
-    if (!nextState || !nextState.completedRooms.includes(roomNumber)) {
+    if (
+      !nextState ||
+      !nextState.completedRooms.includes(roomNumber) ||
+      !Number.isSafeInteger(playerScore) ||
+      playerScore < 0 ||
+      playerScore > 10_000_000
+    ) {
       socket.emit('team:error', { message: 'The solved puzzle state was invalid.' })
       return
     }
     const mergedState = mergeSharedRoomState(sharedRoomStates.get(roomId), nextState)
     sharedRoomStates.set(roomId, mergedState)
-    io.to(roomId).emit('room:state', mergedState)
-    const database = getSupabase()
-    if (!database) {
-      socket.emit('chat:error', { message: supabaseConfigError })
-      return
+    io.to(`team-${socket.data.teamCode}`).emit('room:state', mergedState)
+    const { race, player } = updateTeamRace(socket.data.teamCode, socket.data.user)
+    player.username = getPlayerName(socket.data.user)
+    player.score = Math.max(player.score, playerScore)
+    const puzzleWasAlreadySolved = player.completedRooms.includes(roomNumber)
+    if (!player.completedRooms.includes(roomNumber)) {
+      player.completedRooms = roomOrder.filter((room) =>
+        player.completedRooms.includes(room) || room === roomNumber)
     }
-    const username = getPlayerName(socket.data.user)
-    const row = {
-      id: randomUUID(),
-      room_id: roomId,
-      username: 'SYSTEM',
-      message: `Puzzle ${roomNumber} solved by ${username}`,
-      created_at: new Date().toISOString(),
-      system: true,
+    if (roomNumber === roomOrder[roomOrder.length - 1] &&
+      player.completedRooms.length === roomOrder.length && !player.finishedAt) {
+      player.finishedAt = Date.now()
     }
-    try {
-      await saveMessage(database, row)
-      io.to(roomId).emit('chat:message', row)
-    } catch (error) {
-      console.error('Could not persist or deliver the puzzle notification:', error)
-      socket.emit('chat:error', { message: 'Could not notify the team about the solved puzzle.' })
+    publishTeamRoster(socket.data.teamCode)
+    const standings = getTeamRaceStandings(socket.data.teamCode, true)
+    const everyoneFinished = race.startedAt > 0 &&
+      standings.length > 0 &&
+      standings.every((standing) => standing.finished)
+    if (everyoneFinished && !race.leaderboardPublished) {
+      race.leaderboardPublished = true
+      io.to(`team-${socket.data.teamCode}`).emit('team:leaderboard', standings)
+    }
+    if (!puzzleWasAlreadySolved) {
+      const database = getSupabase()
+      const username = getPlayerName(socket.data.user)
+      const row = {
+        id: randomUUID(),
+        room_id: `team-${socket.data.teamCode}`,
+        username: 'SYSTEM',
+        message: `${username} solved Room ${roomNumber}!`,
+        created_at: new Date().toISOString(),
+        system: true,
+      }
+      try {
+        if (database) await saveMessage(database, row)
+        io.to(`team-${socket.data.teamCode}`).emit('chat:message', row)
+      } catch (error) {
+        console.error('Could not persist or deliver the puzzle notification:', error)
+        io.to(`team-${socket.data.teamCode}`).emit('chat:message', row)
+      }
     }
   })
 
   socket.on('disconnect', () => {
     removeFromQuickMatchQueue(socket.id)
+    const teamCode = socket.data.teamCode
+    const members = teamCode ? teamMembers.get(teamCode) : null
+    const member = members?.get(socket.data.user.id)
+    member?.connections.delete(socket.id)
+    if (teamCode) publishTeamRoster(teamCode)
   })
 })
 

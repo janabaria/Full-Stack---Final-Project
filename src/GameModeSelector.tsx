@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { io, type Socket } from 'socket.io-client'
 import { getSupabaseClient } from './supabaseClient'
 import './GameModeSelector.css'
@@ -15,6 +15,27 @@ type GameModeSelectorProps = {
   value: GameSessionConfig
   roomNumber: number
   onChange: (value: GameSessionConfig) => void
+  onRegisterRoomEntry: (enter: ((roomNumber: number) => Promise<void>) | null) => void
+  onTeamNavigate: (roomNumber: number, state: SharedRoomState | null) => void
+  onSharedState: (state: SharedRoomState) => void
+  onTeamLeaderboard: (entries: TeamLeaderboardEntry[]) => void
+  onTeamNotice: (message: string) => void
+}
+
+export type SharedRoomState = {
+  currentRoom: number
+  completedRooms: number[]
+  score: number
+  inventory: string[]
+}
+
+export type TeamLeaderboardEntry = {
+  userId: string
+  username: string
+  score: number
+  completedRooms: number[]
+  elapsedMs: number
+  finished: boolean
 }
 
 type ServerToClientEvents = {
@@ -23,18 +44,36 @@ type ServerToClientEvents = {
   'room:joined': () => void
   'quick-match:waiting': (data: { message: string }) => void
   'quick-match:matched': (data: { teamCode: string }) => void
+  'team:scoreboard': (entries: TeamLeaderboardEntry[]) => void
+  'team:leaderboard': (entries: TeamLeaderboardEntry[]) => void
+  'team:notice': (notice: { id: string; message: string; created_at: string }) => void
+  'room:state': (state: SharedRoomState) => void
+  'navigate_room': (data: { roomNumber: number; state: SharedRoomState | null }) => void
 }
 
 type ClientToServerEvents = {
   'team:create': () => void
   'team:join': (data: { teamCode: string; roomNumber: number }) => void
+  'game:enter': (
+    data: { teamCode: string; roomNumber: number },
+    acknowledge: (result: { roomId?: string; error?: string }) => void,
+  ) => void
   'quick-match:join': (data: { roomNumber: number }) => void
   'quick-match:cancel': () => void
 }
 
 const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin
 
-export default function GameModeSelector({ value, roomNumber, onChange }: GameModeSelectorProps) {
+export default function GameModeSelector({
+  value,
+  roomNumber,
+  onChange,
+  onRegisterRoomEntry,
+  onTeamNavigate,
+  onSharedState,
+  onTeamLeaderboard,
+  onTeamNotice,
+}: GameModeSelectorProps) {
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null)
   const [connected, setConnected] = useState(false)
   const [teamCode, setTeamCode] = useState('')
@@ -42,6 +81,38 @@ export default function GameModeSelector({ value, roomNumber, onChange }: GameMo
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const pendingCode = useRef('')
+  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null)
+  const teamCodeRef = useRef(value.teamCode)
+  const roomNumberRef = useRef(roomNumber)
+
+  useEffect(() => {
+    teamCodeRef.current = value.teamCode
+    roomNumberRef.current = roomNumber
+  }, [roomNumber, value.teamCode])
+
+  const enterTeamRoom = useCallback(async (targetRoom: number) => {
+    if (!value.teamCode) throw new Error('Create or join a team before entering a room.')
+    const activeSocket = socketRef.current
+    if (!activeSocket?.connected) throw new Error('The team connection is not ready. Try again in a moment.')
+
+    const roomId = await new Promise<string>((resolve, reject) => {
+      const timeout = window.setTimeout(() => {
+        reject(new Error('Joining the selected team room timed out. Please try again.'))
+      }, 8000)
+      activeSocket.emit('game:enter', {
+        teamCode: value.teamCode,
+        roomNumber: targetRoom,
+      }, (result) => {
+        window.clearTimeout(timeout)
+        if (result.error || !result.roomId) {
+          reject(new Error(result.error ?? 'Could not enter the selected team room.'))
+          return
+        }
+        resolve(result.roomId)
+      })
+    })
+    onChange({ mode: 'team', teamCode: value.teamCode, roomId })
+  }, [onChange, value.teamCode])
 
   useEffect(() => {
     if (value.mode !== 'team') return
@@ -61,11 +132,24 @@ export default function GameModeSelector({ value, roomNumber, onChange }: GameMo
       }
 
       nextSocket = io(socketUrl, { autoConnect: false, auth: { token: data.session.access_token } })
+      socketRef.current = nextSocket
       nextSocket.on('connect', () => {
         setConnected(true)
         setError('')
+        if (teamCodeRef.current) {
+          nextSocket?.emit('team:join', {
+            teamCode: teamCodeRef.current,
+            roomNumber: roomNumberRef.current,
+          })
+        }
       })
       nextSocket.on('disconnect', () => setConnected(false))
+      nextSocket.on('room:state', (state) => onSharedState(state))
+      nextSocket.on('navigate_room', ({ roomNumber: targetRoom, state }) => {
+        onTeamNavigate(targetRoom, state)
+      })
+      nextSocket.on('team:leaderboard', onTeamLeaderboard)
+      nextSocket.on('team:notice', ({ message }) => onTeamNotice(message))
       nextSocket.on('connect_error', (connectError) => {
         setConnected(false)
         setError(`Team connection failed: ${connectError.message}`)
@@ -126,8 +210,18 @@ export default function GameModeSelector({ value, roomNumber, onChange }: GameMo
       active = false
       authCleanup()
       nextSocket?.disconnect()
+      if (socketRef.current === nextSocket) socketRef.current = null
     }
-  }, [onChange, roomNumber, value.mode])
+  }, [onChange, onSharedState, onTeamLeaderboard, onTeamNavigate, onTeamNotice, roomNumber, value.mode])
+
+  useEffect(() => {
+    if (value.mode !== 'team') {
+      onRegisterRoomEntry(null)
+      return
+    }
+    onRegisterRoomEntry(enterTeamRoom)
+    return () => onRegisterRoomEntry(null)
+  }, [enterTeamRoom, onRegisterRoomEntry, value.mode])
 
   function selectMode(mode: GameMode) {
     socket?.emit('quick-match:cancel')
