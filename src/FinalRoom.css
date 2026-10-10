@@ -33,12 +33,17 @@
 
 .final-brand span {
   display: grid;
-  width: 28px;
-  height: 28px;
+  width: 48px;
+  height: 48px;
   place-items: center;
-  border: 1px solid rgba(204, 177, 132, .55);
-  color: #d2b98f;
-  font: 18px 'Playfair Display', Georgia, serif;
+  color: #fff;
+}
+
+.final-brand img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .final-room-stats {
@@ -432,4 +437,163 @@
   .final-case {
     padding: 21px;
   }
+}
+
+.final-room {
+  --final-purple: #b4a0ff;
+  color: #f4f5ff;
+  background: #050711;
+}
+
+.final-room-header,
+.final-room-footer {
+  border-color: rgba(160, 177, 220, .17);
+  background: rgba(5, 7, 17, .96);
+}
+
+.final-room-stats {
+  color: #a4abc0;
+}
+
+.final-room-stats strong {
+  color: #c6d5ff;
+}
+
+.vault-scene {
+  background:
+    radial-gradient(ellipse at 50% 48%, rgba(40, 123, 255, .17), transparent 43%),
+    radial-gradient(ellipse at 56% 57%, rgba(139, 92, 246, .13), transparent 48%),
+    linear-gradient(90deg, #070a16, #10162a 50%, #070a16);
+}
+
+.vault-scene::before {
+  background:
+    linear-gradient(90deg, transparent 0 13%, rgba(145, 175, 255, .07) 13.1% 13.25%, transparent 13.4% 29%, rgba(145, 175, 255, .08) 29.1% 29.3%, transparent 29.5% 70%, rgba(145, 175, 255, .08) 70.1% 70.3%, transparent 70.5% 87%, rgba(145, 175, 255, .07) 87.1% 87.25%, transparent 87.4%),
+    repeating-linear-gradient(0deg, transparent 0 92px, rgba(145, 175, 255, .05) 93px 94px),
+    linear-gradient(180deg, #141b30, #1a2032 72%, #101522);
+}
+
+.vault-halo {
+  background: radial-gradient(ellipse, rgba(40, 123, 255, .18), transparent 68%);
+}
+
+.vault-door {
+  border-color: #202a43;
+  outline-color: rgba(145, 175, 255, .24);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 53px, rgba(0, 0, 0, .22) 54px 58px),
+    linear-gradient(100deg, #1b2236, #343f5c 45%, #1b2236);
+  box-shadow: inset 0 0 0 6px #080c18, inset 0 0 0 8px rgba(145, 175, 255, .16), 0 26px 68px rgba(0, 0, 0, .65);
+}
+
+.vault-rings {
+  border-color: #758bc0;
+  background: radial-gradient(circle, #253253, #11182b 69%);
+  box-shadow: 0 0 28px rgba(40, 123, 255, .2), inset 0 0 0 7px rgba(145, 175, 255, .14), inset 0 0 0 17px #1d2944;
+}
+
+.vault-rings i {
+  background: #a9bdff;
+  box-shadow: 0 0 10px rgba(40, 123, 255, .68);
+}
+
+.vault-rings span {
+  color: #c6d5ff;
+  text-shadow: 0 0 20px rgba(40, 123, 255, .45);
+}
+
+.vault-side-light {
+  background: #8b5cf6;
+  box-shadow: 0 0 17px 5px rgba(139, 92, 246, .28);
+}
+
+.final-case {
+  border-color: rgba(145, 175, 255, .34);
+  border-top-color: rgba(40, 123, 255, .78);
+  border-radius: 10px;
+  background: rgba(7, 11, 26, .96);
+  box-shadow: 0 20px 72px rgba(0, 0, 0, .64), 0 0 26px rgba(40, 123, 255, .1);
+}
+
+.final-room-kicker,
+.final-clue span,
+.final-result-card > p:first-of-type {
+  color: #b4a0ff;
+}
+
+.final-case-heading h1,
+.final-result-card h2 {
+  color: #f4f5ff;
+}
+
+.final-case-heading p,
+.result-copy,
+.final-room-footer {
+  color: #a4abc0;
+}
+
+.final-clue {
+  border-left-color: #287bff;
+  border-radius: 0 5px 5px 0;
+  background: rgba(40, 123, 255, .1);
+}
+
+.final-clue p {
+  color: #e1e8fb;
+}
+
+.final-code-display {
+  color: #65708e;
+}
+
+.final-code-display .digit-on {
+  color: #b4a0ff;
+  text-shadow: 0 0 12px rgba(139, 92, 246, .45);
+}
+
+.final-keypad button {
+  border-color: rgba(217, 189, 139, .32);
+  border-radius: 5px;
+  color: #f1e7d2;
+  background: linear-gradient(145deg, #28231d, #11111a);
+}
+
+.final-keypad button:hover {
+  border-color: rgba(217, 189, 139, .82);
+  background: #3a3022;
+}
+
+.final-keypad button:nth-last-child(3),
+.final-keypad button:last-child {
+  color: #e8cb91;
+}
+
+.final-hint-button {
+  border-color: rgba(217, 189, 139, .48);
+  border-radius: 5px;
+  color: #e8cb91;
+  background: rgba(183, 145, 84, .1);
+}
+
+.final-hint-button:hover:not(:disabled) {
+  border-color: rgba(217, 189, 139, .82);
+  background: rgba(183, 145, 84, .18);
+}
+
+.final-result-card {
+  border-color: rgba(145, 175, 255, .4);
+  border-radius: 12px;
+  background: linear-gradient(145deg, #111a32, #080c19);
+}
+
+.result-star,
+.result-total {
+  color: #b4a0ff;
+}
+
+.final-restart {
+  border-color: rgba(217, 189, 139, .75);
+  border-radius: 5px;
+  color: #120e0b;
+  background: linear-gradient(110deg, #d9bd8b, #8b6a42);
 }

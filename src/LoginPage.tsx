@@ -1,13 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import './LoginPage.css'
-import { useI18n } from './useI18n'
+import { usePreferences } from './preferencesContext'
 
 type LoginPageProps = {
   onLogin: (username: string, password: string) => Promise<void>
 }
 
 function LoginPage({ onLogin }: LoginPageProps) {
-  const { t } = useI18n()
+  const { t } = usePreferences()
   const [identity, setIdentity] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -26,29 +26,20 @@ function LoginPage({ onLogin }: LoginPageProps) {
 
   return (
     <main className="login-page">
-      <div className="login-grain" aria-hidden="true" />
-      <a className="login-brand" href="/login" aria-label={t('Escape Room Online')}>
-        <span className="login-brand-mark">E</span>
-        <span><strong>ESCAPE ROOM</strong><small>{t('ONLINE EXPERIENCE')}</small></span>
+      <a className="login-brand" href="/login" aria-label="MAZORA">
+        <img className="login-brand-logo" src="/images/mazora-logo-transparent.png" alt="MAZORA Escape Room Game Logo" />
       </a>
       <div className="login-content">
-        <div className="login-intro">
-          <span className="login-overline"><i /> {t('YOUR NEXT MOVE CHANGES EVERYTHING')}</span>
-          <h1>{t('Some doors')}<br /><em>{t('should stay closed.')}</em></h1>
-          <p>{t('Every clue matters. Every second counts. Find your way out.')}</p>
-        </div>
         <section className="login-card" aria-labelledby="login-title">
-          <div className="login-card-topline"><span>{t('LOCAL PLAYER SESSION')}</span><span>01 — 04</span></div>
-          <div className="login-seal" aria-hidden="true">✧</div>
-          <h2 id="login-title">{t('Enter the unknown.')}</h2>
-          <p className="login-card-description">{t('Create or continue a local player session.')}</p>
+          <h1 id="login-title">{t('login.welcome')}</h1>
+          <p className="login-card-description">{t('login.subtitle')}</p>
           <form onSubmit={submitLogin}>
-            <label htmlFor="login-identity">{t('EMAIL OR USERNAME')}</label>
+            <label htmlFor="login-identity">{t('login.identity')}</label>
             <input
               id="login-identity"
               name="username"
               autoComplete="username"
-              placeholder="investigator@example.com"
+              placeholder={t('login.identityPlaceholder')}
               value={identity}
               onChange={(event) => {
                 setIdentity(event.target.value)
@@ -56,13 +47,13 @@ function LoginPage({ onLogin }: LoginPageProps) {
               }}
               required
             />
-            <label htmlFor="login-password">{t('PASSWORD')}</label>
+            <label htmlFor="login-password">{t('login.password')}</label>
             <input
               id="login-password"
               name="password"
               type="password"
               autoComplete="current-password"
-              placeholder={t('Enter your password')}
+              placeholder={t('login.passwordPlaceholder')}
               value={password}
               onChange={(event) => {
                 setPassword(event.target.value)
@@ -72,13 +63,12 @@ function LoginPage({ onLogin }: LoginPageProps) {
             />
             {error && <p className="login-error" role="alert">{t(error)}</p>}
             <button className="login-submit" type="submit">
-              <span>{t('UNLOCK YOUR SESSION')}</span><i aria-hidden="true">→</i>
+              <span>{t('login.continue')}</span><i aria-hidden="true">→</i>
             </button>
           </form>
-          <div className="login-card-foot"><span>🔒</span> {t('LOCAL BACKUP · CLOUD SYNC WHEN CONFIGURED')}</div>
+          <p className="login-card-foot">{t('login.localProgress')}</p>
         </section>
       </div>
-      <footer className="login-footer"><span>ESCAPE ROOM ONLINE</span><span>{t('DEMO SIGN-IN · LOCAL BACKUP + OPTIONAL CLOUD SYNC')}</span></footer>
     </main>
   )
 }

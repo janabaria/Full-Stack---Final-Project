@@ -1,7 +1,13 @@
 :root {
+  --mazora-black: #050711;
+  --mazora-navy: #0a1024;
+  --mazora-blue: #287bff;
+  --mazora-purple: #8b5cf6;
+  --mazora-white: #f4f5ff;
+  --mazora-muted: #a4abc0;
   font-family: 'DM Sans', 'Segoe UI', sans-serif;
-  color: #f1eff7;
-  background: #090910;
+  color: var(--mazora-white);
+  background: var(--mazora-black);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -17,7 +23,7 @@
 html {
   min-width: 320px;
   min-height: 100%;
-  background: #090910;
+  background: var(--mazora-black);
 }
 
 body {
@@ -30,9 +36,9 @@ body {
 body, html {
   width: 100%;
   height: 100%;
-  background-color: #0d0f17;
+  background-color: var(--mazora-black);
   overflow-x: hidden;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
 }
 button {
   font: inherit;
@@ -78,11 +84,28 @@ html[dir='rtl'] .language-switcher {
 
 button:focus-visible,
 a:focus-visible {
-  outline: 2px solid #c9a8ec;
+  outline: 2px solid var(--mazora-blue);
   outline-offset: 3px;
+}
+
+.room-canvas-brand {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--mazora-white);
+  font: 600 9px 'DM Mono', monospace;
+  letter-spacing: 1.2px;
+}
+
+.room-canvas-brand img {
+  display: block;
+  width: 31px;
+  height: 31px;
+  object-fit: contain;
 }
 
 ::selection {
   color: #fff;
-  background: #71518e;
+  background: var(--mazora-purple);
 }
