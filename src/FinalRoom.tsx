@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import './FinalRoom.css'
 import { usePreferences } from './preferencesContext'
 import { translateRoomText } from './roomTranslations'
@@ -13,7 +13,6 @@ const hints = [
 type FinalRoomProps = {
   initialScore: number
   onComplete: (details: { score: number; hintsUsed: number }) => void
-  onGameOver?: () => void
 }
 
 function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
@@ -25,7 +24,6 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
   const [hintIndex, setHintIndex] = useState(0)
   const [message, setMessage] = useState('')
   const [complete, setComplete] = useState(false)
-  const gameOverNotifiedRef = useRef(false)
   const gameOver = timeLeft === 0 && !complete
 
   useEffect(() => {
@@ -35,12 +33,6 @@ function FinalRoom({ initialScore, onComplete }: FinalRoomProps) {
     }, 1000)
     return () => window.clearTimeout(timer)
   }, [complete, gameOver, timeLeft])
-
-  useEffect(() => {
-    if (!gameOver || gameOverNotifiedRef.current) return
-    gameOverNotifiedRef.current = true
-    onGameOver?.()
-  }, [gameOver, onGameOver])
 
   const formattedTime = `${Math.floor(timeLeft / 60).toString().padStart(2, '0')}:${(timeLeft % 60).toString().padStart(2, '0')}`
 

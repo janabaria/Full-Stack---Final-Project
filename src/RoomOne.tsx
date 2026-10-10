@@ -44,12 +44,10 @@ function RoomOne({
   onEnterRoomTwo,
   onBackHome,
   onRoomComplete,
-  onGameOver,
 }: {
   onEnterRoomTwo?: () => void
   onBackHome?: () => void
   onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
-  onGameOver?: () => void
 }) {
   const { language } = usePreferences()
   const tr = (text: string) => translateRoomText(text, language)
@@ -74,7 +72,6 @@ function RoomOne({
   const [roomComplete, setRoomComplete] = useState(false)
   const [roomTwoEntered, setRoomTwoEntered] = useState(false)
   const completionNotifiedRef = useRef(false)
-  const gameOverNotifiedRef = useRef(false)
   const activeModal =
     secondsLeft === 0 && !roomComplete ? 'gameover' : modal
 
@@ -104,12 +101,6 @@ function RoomOne({
     completionNotifiedRef.current = true
     onRoomComplete?.({ score, hintsUsed: hintCount })
   }, [hintCount, onRoomComplete, roomComplete, score])
-
-  useEffect(() => {
-    if (secondsLeft !== 0 || roomComplete || gameOverNotifiedRef.current) return
-    gameOverNotifiedRef.current = true
-    onGameOver?.()
-  }, [onGameOver, roomComplete, secondsLeft])
 
   const formattedTime = `${Math.floor(secondsLeft / 60)
     .toString()
