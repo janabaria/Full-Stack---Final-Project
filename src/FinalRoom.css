@@ -1,6 +1,6 @@
 .final-room {
   --final-purple: #b694e1;
-  min-height: 100svh;
+  min-height: calc(100svh - 64px);
   display: flex;
   flex-direction: column;
   overflow: hidden;

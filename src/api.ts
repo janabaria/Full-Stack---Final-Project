@@ -1,3 +1,5 @@
+import { getSupabaseClient } from './supabaseClient'
+
 export type GameProgress = {
   currentRoom: number
   completedRooms: number[]
@@ -16,10 +18,16 @@ export type LeaderboardEntry = {
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const { data, error } = await getSupabaseClient().auth.getSession()
+  if (error) throw new Error(`Could not read your login session: ${error.message}`)
+  const token = data.session?.access_token
+  if (!token) throw new Error('Sign in again to access saved game progress.')
+
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
       ...init?.headers,
     },
   })

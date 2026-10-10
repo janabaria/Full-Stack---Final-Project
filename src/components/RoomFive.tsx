@@ -6,9 +6,8 @@ import { translateRoomText } from '../roomTranslations'
 
 type RoomFiveProps = {
   initialScore?: number
-  onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
+  onRoomComplete?: (details: { score: number; hintsUsed: number; inventory: string[] }) => void
   onEnterFinalRoom?: () => void
-  onBackHome?: () => void
 }
 
 type Item = {
@@ -22,7 +21,7 @@ type Item = {
   height: number;
 }
 
-export const RoomFive = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, onBackHome }: RoomFiveProps) => {
+export const RoomFive = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom }: RoomFiveProps) => {
   const { language } = usePreferences()
   const tr = (text: string) => translateRoomText(text, language)
   const [timeLeft, setTimeLeft] = useState<number>(120);
@@ -55,8 +54,12 @@ export const RoomFive = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom,
     completionNotifiedRef.current = true;
     const finalScore = Math.max(initialScore, score + timeLeft * 5);
     setCompletionSent(true);
-    onRoomComplete?.({ score: finalScore, hintsUsed: 0 });
-  }, [completionSent, doorUnlocked, initialScore, onRoomComplete, score, timeLeft]);
+    onRoomComplete?.({
+      score: finalScore,
+      hintsUsed: 0,
+      inventory: items.filter((item) => item.found).map((item) => item.name),
+    });
+  }, [completionSent, doorUnlocked, initialScore, items, onRoomComplete, score, timeLeft]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -95,15 +98,7 @@ export const RoomFive = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom,
         className={`room5-game-canvas ${isGameOver ? 'alarm-active' : ''}`}
         style={{ backgroundImage: `url(${roomFiveImage})` }}
       >
-        <button className="room5-home-link" type="button" onClick={onBackHome}>
-          {tr('← ALL ROOMS')}
-        </button>
-
         <div className="game-header">
-          <span className="room-canvas-brand">
-            <img src="/images/mazora-logo-transparent.png" alt="MAZORA Escape Room Game Logo" />
-            <strong>MAZORA</strong>
-          </span>
           <div className="inventory-box">{tr('ROOM 04')} · {tr('THE MYSTERIOUS STUDY')}</div>
           <div className="timer-box">⏰ {tr('TIME:')} {formatTime(timeLeft)}</div>
           <div className="inventory-box">

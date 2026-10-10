@@ -3,23 +3,27 @@ import './LoginPage.css'
 import { usePreferences } from './preferencesContext'
 
 type LoginPageProps = {
-  onLogin: (username: string, password: string) => Promise<void>
+  onLogin: (email: string, password: string, createAccount: boolean, displayName: string) => Promise<void>
+  authError?: string
 }
 
-function LoginPage({ onLogin }: LoginPageProps) {
+function LoginPage({ onLogin, authError = '' }: LoginPageProps) {
   const { t } = usePreferences()
-  const [identity, setIdentity] = useState('')
+  const [email, setEmail] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [createAccount, setCreateAccount] = useState(false)
 
   function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const username = identity.trim()
-    if (!username || !password) {
-      setError('Enter your username and password to continue.')
+    if (!email.trim() || !password || (createAccount && !displayName.trim())) {
+      setError(createAccount
+        ? 'Enter your display name, email, and password to create an account.'
+        : 'Enter your email and password to continue.')
       return
     }
-    void onLogin(username, password).catch((loginError: unknown) => {
+    void onLogin(email.trim(), password, createAccount, displayName.trim()).catch((loginError: unknown) => {
       setError(loginError instanceof Error ? loginError.message : 'Could not sign in. Please try again.')
     })
   }
@@ -32,17 +36,37 @@ function LoginPage({ onLogin }: LoginPageProps) {
       <div className="login-content">
         <section className="login-card" aria-labelledby="login-title">
           <h1 id="login-title">{t('login.welcome')}</h1>
-          <p className="login-card-description">{t('login.subtitle')}</p>
+          <p className="login-card-description">
+            {createAccount ? 'Create a Supabase account to join a co-op team.' : t('login.subtitle')}
+          </p>
           <form onSubmit={submitLogin}>
-            <label htmlFor="login-identity">{t('login.identity')}</label>
+            {createAccount && (
+              <>
+                <label htmlFor="login-display-name">Display name</label>
+                <input
+                  id="login-display-name"
+                  name="displayName"
+                  autoComplete="nickname"
+                  maxLength={80}
+                  value={displayName}
+                  onChange={(event) => {
+                    setDisplayName(event.target.value)
+                    setError('')
+                  }}
+                  required
+                />
+              </>
+            )}
+            <label htmlFor="login-email">Email</label>
             <input
-              id="login-identity"
-              name="username"
-              autoComplete="username"
-              placeholder={t('login.identityPlaceholder')}
-              value={identity}
+              id="login-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              value={email}
               onChange={(event) => {
-                setIdentity(event.target.value)
+                setEmail(event.target.value)
                 setError('')
               }}
               required
@@ -61,12 +85,22 @@ function LoginPage({ onLogin }: LoginPageProps) {
               }}
               required
             />
-            {error && <p className="login-error" role="alert">{error}</p>}
+            {(error || authError) && <p className="login-error" role="alert">{error || authError}</p>}
             <button className="login-submit" type="submit">
-              <span>{t('login.continue')}</span><i aria-hidden="true">→</i>
+              <span>{createAccount ? 'CREATE ACCOUNT' : t('login.continue')}</span><i aria-hidden="true">→</i>
             </button>
           </form>
-          <p className="login-card-foot">{t('login.localProgress')}</p>
+          <button
+            className="login-mode-toggle"
+            type="button"
+            onClick={() => {
+              setCreateAccount((current) => !current)
+              setError('')
+            }}
+          >
+            {createAccount ? 'Already registered? Sign in' : 'New player? Create an account'}
+          </button>
+          <p className="login-card-foot">Sign-in is secured by Supabase Auth.</p>
         </section>
       </div>
     </main>
