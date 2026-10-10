@@ -366,6 +366,10 @@ a:focus-visible {
   filter: drop-shadow(0 0 12px rgba(83, 115, 255, .2));
 }
 
+.home-shell {
+  padding-top: 32px;
+}
+
 .home-header .eyebrow-header {
   margin-bottom: 5px;
   font-size: 8px;

@@ -2,7 +2,7 @@ import { usePreferences } from './preferencesContext'
 import { translateRoomText } from './roomTranslations'
 import './PreferenceControls.css'
 
-function PreferenceControls() {
+function PreferenceControls({ inline = false }: { inline?: boolean }) {
   const {
     language,
     setLanguage,
@@ -13,7 +13,7 @@ function PreferenceControls() {
   } = usePreferences()
 
   return (
-    <aside className="preference-controls" aria-label={t('preferences.language')}>
+    <aside className={`preference-controls${inline ? ' is-inline' : ''}`} aria-label={t('preferences.language')}>
       <div className="preference-language" role="group" aria-label={t('preferences.language')}>
         <button
           type="button"

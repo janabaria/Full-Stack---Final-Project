@@ -5,12 +5,11 @@ import { translateRoomText } from '../roomTranslations'
 
 type Room3Props = {
   initialScore?: number
-  onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
+  onRoomComplete?: (details: { score: number; hintsUsed: number; inventory: string[] }) => void
   onEnterFinalRoom?: () => void
-  onBackHome?: () => void
 }
 
-export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, onBackHome }: Room3Props) => {
+export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom }: Room3Props) => {
   const { language } = usePreferences()
   const tr = (text: string) => translateRoomText(text, language)
   const [activeModal, setActiveModal] = useState<string | null>(null);
@@ -44,8 +43,8 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
     completionNotifiedRef.current = true;
     const finalScore = Math.max(initialScore, score + timeLeft * 5 + (safeUnlocked ? 300 : 0));
     setCompletionSent(true);
-    onRoomComplete?.({ score: finalScore, hintsUsed: 0 });
-  }, [completionSent, doorUnlocked, initialScore, onRoomComplete, safeUnlocked, score, timeLeft]);
+    onRoomComplete?.({ score: finalScore, hintsUsed: 0, inventory: hasKeycard ? ['Security Keycard'] : [] });
+  }, [completionSent, doorUnlocked, hasKeycard, initialScore, onRoomComplete, safeUnlocked, score, timeLeft]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -77,16 +76,8 @@ export const Room3 = ({ initialScore = 750, onRoomComplete, onEnterFinalRoom, on
   return (
     <div className="room3-page-container">
       <div className={`room3-game-canvas ${isAlarmActive || isGameOver ? 'alarm-active' : ''}`}>
-        <button className="room3-home-link" type="button" onClick={onBackHome}>
-          {tr('← ALL ROOMS')}
-        </button>
-        
         {/* Header Bar */}
         <div className="game-header">
-          <span className="room-canvas-brand">
-            <img src="/images/mazora-logo-transparent.png" alt="MAZORA Escape Room Game Logo" />
-            <strong>MAZORA</strong>
-          </span>
           <div className="timer-box">⏰ {tr('TIME:')} {formatTime(timeLeft)}</div>
           <div className="inventory-box">🎒 {tr('INVENTORY:')} {hasKeycard ? `💳 ${tr('Security Keycard')}` : tr('Empty')} · {tr('SCORE')} {score.toLocaleString()}</div>
         </div>

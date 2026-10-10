@@ -209,13 +209,11 @@ function getLocalizedStorageWarning(message: string, language: 'en' | 'ar') {
 export function RoomTwoGame({
   initialScore = 750,
   onEnterRoomThree,
-  onBackHome,
   onRoomComplete,
 }: {
   initialScore?: number
   onEnterRoomThree?: () => void
-  onBackHome?: () => void
-  onRoomComplete?: (details: { score: number; hintsUsed: number }) => void
+  onRoomComplete?: (details: { score: number; hintsUsed: number; inventory: string[] }) => void
 }) {
   const { language } = usePreferences()
   const tr = (text: string) => translateRoomText(text, language)
@@ -239,8 +237,8 @@ export function RoomTwoGame({
   useEffect(() => {
     if (!complete || completionNotifiedRef.current) return
     completionNotifiedRef.current = true
-    onRoomComplete?.({ score, hintsUsed })
-  }, [complete, hintsUsed, onRoomComplete, score])
+    onRoomComplete?.({ score, hintsUsed, inventory: fragments.map((fragment) => `Password fragment: ${fragment}`) })
+  }, [complete, fragments, hintsUsed, onRoomComplete, score])
 
   function submitAnswer() {
     if (selectedChoice === null || answered) return
@@ -277,35 +275,9 @@ export function RoomTwoGame({
 
   return (
     <main className="game-shell room-two-shell">
-      <header className="topbar">
-        <a className="brand" href="/" onClick={(event) => {
-          event.preventDefault()
-          onBackHome?.()
-        }} aria-label={`MAZORA ${tr('HOME')}`}>
-          <span className="brand-mark">
-            <img src="/images/mazora-logo-transparent.png" alt="MAZORA Escape Room Game Logo" />
-          </span>
-          <span>MAZORA</span>
-        </a>
-        <nav className="main-nav" aria-label={tr('Main navigation')}>
-          <a href="/" onClick={(event) => {
-            event.preventDefault()
-            onBackHome?.()
-          }}>{tr('Rooms')}</a>
-          <a href="#room">{tr('Leaderboard')}</a>
-          <a href="#room">{tr('How to play')}</a>
-        </nav>
-        <div className="player-chip">
-          <span className="online-dot" />
-          <span>{tr('PLAYER 01')}</span>
-          <span className="player-avatar" aria-hidden="true">H</span>
-        </div>
-      </header>
-
       <section className="game-content" id="room">
         <div className="room-heading">
           <div>
-            <a className="back-link" href="#room"><span aria-hidden="true">←</span> {tr('ALL ROOMS')}</a>
             <div className="title-row">
               <div>
                 <div className="eyebrow"><span className="eyebrow-line" /> {tr('ROOM 02')} <span className="eyebrow-dot">/</span> {tr('THE INTERVIEW')}</div>
@@ -559,7 +531,6 @@ function App() {
         setHydratedUsername(null)
         return
       }
-
       const email = user.email ?? ''
       const metadataName = user.user_metadata?.username
       setPlayer({
@@ -1007,7 +978,7 @@ function App() {
               type="button"
               className={`room-card room-art-${room.id} ${isCurrent ? 'is-current' : ''} ${isCompleted ? 'is-complete' : ''} ${isUnlocked ? 'is-unlocked' : 'is-locked'}`}
               disabled={!isUnlocked}
-              onClick={() => isUnlocked && navigate(room.path)}
+              onClick={() => isUnlocked && enterGameRoom(room.id)}
               style={room.id === 3 ? {
                 backgroundImage: `linear-gradient(180deg, rgba(8, 8, 16, .18), rgba(8, 8, 16, .96)), url(${roomThreeImage})`,
               } : undefined}
@@ -1033,20 +1004,6 @@ function App() {
     if (showHome || route === '/') {
         return (
         <div className="dashboard-shell home-shell">
-          <header className="app-header compact home-header">
-            <div className="home-wordmark">
-              <img className="home-brand-mark" src="/images/mazora-logo-transparent.png" alt="MAZORA Escape Room Game Logo" />
-              <div>
-                <p className="eyebrow-header">{t('home.eyebrow')}</p>
-                <h1>{t('home.welcome')}</h1>
-              </div>
-            </div>
-            <div className="home-account">
-              <span className="home-player">{translateRoomText('AGENT', language)} <strong>{player?.username}</strong></span>
-              <button className="ghost-button" type="button" onClick={handleLogout}>{t('home.signOut')}</button>
-            </div>
-          </header>
-
           <section className="home-panel">
             <div className="home-copy">
               <p className="eyebrow-header">{t('home.brief')} <span className="brief-marker">/ {t('home.rooms')}</span></p>
@@ -1244,7 +1201,6 @@ function App() {
         <RoomTwoGame
           initialScore={progress.score}
           onEnterRoomThree={handleRoomTwoEnter}
-          onBackHome={() => navigate('/')}
           onRoomComplete={handleRoomTwoComplete}
         />
       )
@@ -1258,7 +1214,6 @@ function App() {
       return (
         <Room3
           initialScore={progress.score}
-          onBackHome={() => navigate('/')}
           onRoomComplete={handleRoomThreeComplete}
           onEnterFinalRoom={handleRoomThreeEnter}
         />
@@ -1272,7 +1227,6 @@ function App() {
           initialScore={progress.score}
           onRoomComplete={handleRoomFourComplete}
           onEnterFinalRoom={handleRoomFourEnter}
-          onBackHome={() => navigate('/')}
         />
       )
     }
@@ -1308,6 +1262,8 @@ function App() {
       <div hidden={route !== '/'}>{renderContent(true)}</div>
       {route !== '/' && renderContent()}
       {activeRoomMatch && (
+      {renderContent()}
+      {player && activeRoomMatch && (
         <TeamChatDrawer
           roomNumber={Number(activeRoomMatch[1])}
           playerName={player.username}

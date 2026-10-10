@@ -1,6 +1,6 @@
 .room5-page-container {
   width: 100vw;
-  height: 100vh;
+  height: calc(100svh - 64px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -14,7 +14,7 @@
 .room5-game-canvas {
   position: relative;
   width: 96vw;
-  height: 96vh;
+  height: min(96vh, calc(100svh - 76px));
   max-width: 1920px;
   aspect-ratio: 16 / 9;
   background-image: url('../images/room5-bg.png');
